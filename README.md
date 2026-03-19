@@ -18,32 +18,24 @@ AI agent skills for the [OpenMath](https://openmath-dev.shentu.org) formal verif
 
 ## Install
 
-### Via npx (recommended)
+### Using AI Skills CLI (recommended)
+
+You can add these skills to your local agent environment with a single command:
 
 ```bash
-cd your-project
-
-# Install all OpenMath skills (default agent: claude)
-npx openmath-skills install openmath-*
-
-# For other agents
-npx openmath-skills install openmath-* --agent cursor
-npx openmath-skills install openmath-* --agent codex
+# Add all skills from this repository
+npx skills add shentufoundation/openmath-skills
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/openmath/openmath-skills-arena.git
-cd your-project
+git clone https://github.com/shentufoundation/openmath-skills.git
+cd openmath-skills
 
-# Copy all OpenMath skills (default agent: claude)
+# Copy skills manually (e.g., for Claude)
 mkdir -p .claude/skills
-cp -r /path/to/openmath-skills-arena/skills/openmath-* .claude/skills/
-
-# For Cursor
-mkdir -p .cursor/skills
-cp -r /path/to/openmath-skills-arena/skills/openmath-* .cursor/skills/
+cp -r skills/openmath-* .claude/skills/
 ```
 
 ### Install Lean proving skills (optional)
