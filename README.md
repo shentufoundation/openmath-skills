@@ -1,6 +1,6 @@
 # OpenMath Skills Arena
 
-AI agent skills for the [OpenMath](https://openmath-dev.shentu.org) formal verification platform. This repository provides a complete workflow for discovering open theorems, proving them locally in Lean or Rocq, and submitting verified proofs to earn rewards on the Shentu network.
+AI agent skills for the [OpenMath](https://openmath.shentu.org) formal verification platform. This repository provides a complete workflow for discovering open theorems, proving them locally in Lean or Rocq, and submitting verified proofs to earn rewards on the Shentu network.
 
 ## Skills
 
