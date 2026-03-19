@@ -1,7 +1,7 @@
 ---
 name: openmath-claim-reward
 description: Claims earned rewards from the OpenMath platform. Use when the user wants to query claimable imported/proof rewards or withdraw verified Shentu rewards after a proof has passed verification.
-version: v1.0.0
+version: v1.0.1
 ---
 
 # OpenMath Claim Reward
