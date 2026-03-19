@@ -54,7 +54,7 @@ Runtime chain settings are not stored in `openmath-env.json`:
 If the user has not configured authz yet, use this sequence:
 
 1. Make sure `prover_address` and `agent_address` are already known and saved in `openmath-env.json`.
-2. Open [https://openmath-canary.shentu.org/OpenMath/Profile](https://openmath-canary.shentu.org/OpenMath/Profile).
+2. Open [https://openmath.shentu.org/OpenMath/Profile](https://openmath.shentu.org/OpenMath/Profile).
 3. Scroll to the bottom of the page and find `AI Agent Authorization`.
 4. Enter `agent_address`.
 5. Click `Authorize`.

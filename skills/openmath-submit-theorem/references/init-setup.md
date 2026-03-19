@@ -98,7 +98,7 @@ Collect the copied Wallet Address into `prover_address`.
 
 How to find it:
 
-1. Open [https://openmath-canary.shentu.org](https://openmath-canary.shentu.org)
+1. Open [https://openmath.shentu.org](https://openmath.shentu.org)
 2. Connect the wallet and enter `Profile`
 3. Find `Wallet Address`
 4. Copy that address into `prover_address`
@@ -177,7 +177,7 @@ options:
 
 Lookup flow:
 
-1. Open [https://openmath-canary.shentu.org](https://openmath-canary.shentu.org)
+1. Open [https://openmath.shentu.org](https://openmath.shentu.org)
 2. Connect the wallet and enter `Profile`
 3. Copy `Wallet Address`
 4. Save it into `prover_address`
@@ -220,7 +220,7 @@ Only guide the user to the website after both `prover_address` and `agent_addres
 
 Recommended flow:
 
-1. Open [https://openmath-canary.shentu.org/OpenMath/Profile](https://openmath-canary.shentu.org/OpenMath/Profile)
+1. Open [https://openmath.shentu.org/OpenMath/Profile](https://openmath.shentu.org/OpenMath/Profile)
 2. Scroll to the bottom and find `AI Agent Authorization`
 3. Enter `agent_address`
 4. Click `Authorize`
