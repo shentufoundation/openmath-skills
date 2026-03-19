@@ -1,0 +1,26 @@
+{
+  "name": "openmath-skills",
+  "version": "1.0.0",
+  "description": "AI agent skills for the OpenMath formal verification platform",
+  "bin": {
+    "openmath-skills": "./bin/cli.js"
+  },
+  "files": [
+    "skills/",
+    "bin/",
+    "LICENSE"
+  ],
+  "keywords": [
+    "openmath",
+    "lean4",
+    "formal-verification",
+    "theorem-proving",
+    "ai-agent",
+    "skills"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openmath/openmath-skills-arena.git"
+  }
+}

@@ -1,0 +1,63 @@
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# LEAN
+*.olean
+.lake/
+lake-packages/
+build/
+
+# Skills manager install dirs (symlinks; project-level per agent: .cursor/skills/, .codex/skills/, .gemini/skills/)
+.cursor/
+.codex/
+.gemini/
+.claude/
+
+# Results (uncomment if you don't want to track results)
+# results/*.json
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+tmp

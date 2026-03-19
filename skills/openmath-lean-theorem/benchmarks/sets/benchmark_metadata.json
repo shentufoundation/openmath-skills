@@ -1,0 +1,111 @@
+{
+  "benchmarks": [
+    {
+      "benchmark_id": "easy_algebra_001",
+      "file_path": "easy/algebra/basic_arithmetic.lean",
+      "difficulty": "easy",
+      "topic": "algebra",
+      "description": "Basic arithmetic properties - commutativity of natural number addition",
+      "lemmas": ["nat_add_comm"],
+      "expected_time_ms": 1000,
+      "tags": ["commutativity", "addition", "natural-numbers", "basic"]
+    },
+    {
+      "benchmark_id": "easy_algebra_002",
+      "file_path": "easy/algebra/even_add_even.lean",
+      "difficulty": "easy",
+      "topic": "algebra",
+      "description": "Parity - prove that the sum of two even natural numbers is even",
+      "lemmas": ["even_add_even"],
+      "expected_time_ms": 1000,
+      "tags": ["parity", "even", "addition", "natural-numbers", "basic"]
+    },
+    {
+      "benchmark_id": "medium_algebra_001",
+      "file_path": "medium/algebra/gauss_sum.lean",
+      "difficulty": "medium",
+      "topic": "algebra",
+      "description": "Gauss sum formula - prove that 2 * (0 + 1 + ... + n) = n * (n + 1)",
+      "lemmas": ["gauss_sum"],
+      "expected_time_ms": 5000,
+      "tags": ["gauss", "sum", "induction", "arithmetic-series", "finset"]
+    },
+    {
+      "benchmark_id": "hard_algebra_001",
+      "file_path": "hard/algebra/infinite_primes.lean",
+      "difficulty": "hard",
+      "topic": "algebra",
+      "description": "Euclid's theorem - for every n there exists a prime p greater than n",
+      "lemmas": ["infinite_primes"],
+      "expected_time_ms": 30000,
+      "tags": ["primes", "euclid", "number-theory", "infinity", "existence"]
+    },
+    {
+      "benchmark_id": "easy_combinatorics_001",
+      "file_path": "easy/combinatorics/choose_one.lean",
+      "difficulty": "easy",
+      "topic": "combinatorics",
+      "description": "Binomial coefficient base case - C(n, 1) = n",
+      "lemmas": ["choose_one"],
+      "expected_time_ms": 1000,
+      "tags": ["binomial", "choose", "combinatorics", "basic"]
+    },
+    {
+      "benchmark_id": "medium_combinatorics_001",
+      "file_path": "medium/combinatorics/pascal_identity.lean",
+      "difficulty": "medium",
+      "topic": "combinatorics",
+      "description": "Pascal's identity - C(n+1, k+1) = C(n, k) + C(n, k+1)",
+      "lemmas": ["pascal_identity"],
+      "expected_time_ms": 5000,
+      "tags": ["pascal", "binomial", "recurrence", "combinatorics", "triangle"]
+    },
+    {
+      "benchmark_id": "hard_combinatorics_001",
+      "file_path": "hard/combinatorics/binomial_row_sum.lean",
+      "difficulty": "hard",
+      "topic": "combinatorics",
+      "description": "Binomial row sum - the sum of the n-th row of Pascal's triangle equals 2^n",
+      "lemmas": ["binomial_row_sum"],
+      "expected_time_ms": 30000,
+      "tags": ["binomial-theorem", "pascal", "finset", "power-of-two", "combinatorics"]
+    },
+    {
+      "benchmark_id": "easy_logic_001",
+      "file_path": "easy/logic/and_comm.lean",
+      "difficulty": "easy",
+      "topic": "logic",
+      "description": "Conjunction commutativity - P ∧ Q implies Q ∧ P",
+      "lemmas": ["and_comm_proof"],
+      "expected_time_ms": 1000,
+      "tags": ["propositional-logic", "conjunction", "commutativity", "basic"]
+    },
+    {
+      "benchmark_id": "medium_logic_001",
+      "file_path": "medium/logic/de_morgan.lean",
+      "difficulty": "medium",
+      "topic": "logic",
+      "description": "De Morgan's law - ¬(P ∨ Q) ↔ ¬P ∧ ¬Q",
+      "lemmas": ["de_morgan_or"],
+      "expected_time_ms": 5000,
+      "tags": ["de-morgan", "negation", "disjunction", "conjunction", "propositional-logic"]
+    },
+    {
+      "benchmark_id": "hard_logic_001",
+      "file_path": "hard/logic/cantor_theorem.lean",
+      "difficulty": "hard",
+      "topic": "logic",
+      "description": "Cantor's theorem - there is no surjective function from a type to its powerset",
+      "lemmas": ["cantor_theorem"],
+      "expected_time_ms": 30000,
+      "tags": ["cantor", "diagonal", "surjection", "powerset", "set-theory"]
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2026-03-12",
+    "total_benchmarks": 10,
+    "difficulties": ["easy", "medium", "hard"],
+    "topics": ["algebra", "combinatorics", "logic"]
+  }
+}
