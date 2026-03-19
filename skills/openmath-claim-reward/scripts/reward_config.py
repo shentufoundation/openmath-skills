@@ -67,7 +67,7 @@ def reward_onboarding_text(config_path: Path | None = None) -> str:
             f"Init setup guide: {setup_doc}",
             "",
             "To get the OpenMath Wallet Address:",
-            "1. Open https://openmath-canary.shentu.org",
+            "1. Open https://openmath.shentu.org",
             "2. Connect the wallet and enter Profile",
             "3. Copy Wallet Address",
             "4. Save that address as `prover_address` in openmath-env.json, or pass it directly to the rewards query command",

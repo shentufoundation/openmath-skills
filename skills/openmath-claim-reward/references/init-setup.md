@@ -54,7 +54,7 @@ Ask for the user's OpenMath Wallet Address.
 
 How to find it:
 
-1. Open [https://openmath-canary.shentu.org](https://openmath-canary.shentu.org)
+1. Open [https://openmath.shentu.org](https://openmath.shentu.org)
 2. Connect the wallet and enter `Profile`
 3. Find `Wallet Address`
 4. Copy it

@@ -1,7 +1,7 @@
 ---
 name: openmath-submit-theorem
 description: Submits proofs or theorem solutions to the OpenMath platform. Use when the user wants to commit a proof hash or reveal a Lean/Rocq proof for a specific OpenMath theorem ID on the Shentu network.
-version: v1.0.0
+version: v1.0.1
 ---
 
 # OpenMath Submit Theorem
