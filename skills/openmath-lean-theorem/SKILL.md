@@ -58,5 +58,5 @@ Load when needed (one level from this file):
 
 - **[references/preflight.md](references/preflight.md)** — Preflight command and Lean/Rocq checks.
 - **[references/proof_playbook.md](references/proof_playbook.md)** — Step-by-step workflow for proving a downloaded Lean theorem locally.
-- **[references/languages.md](references/languages.md)** — Lean and Rocq/Coq versions and standard libraries.
+- **[references/languages.md](references/languages.md)** — Lean version and standard library.
 - **[benchmarks/AGENTS.md](benchmarks/AGENTS.md)** — Full agent guide for the LEAN4 benchmark subsystem.

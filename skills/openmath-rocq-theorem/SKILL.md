@@ -64,3 +64,9 @@ Set up the Rocq proving environment, validate opam switches, install local Rocq 
 - **Stdlib prefix**: Use `From Stdlib Require Import` for Rocq 9.x. The legacy `From Coq Require Import` still works with a deprecation warning; prefer `From Stdlib` for all new proofs.
 - **Verification status**: A proof is complete only when `dune build` exits 0, no `admit` or `Admitted.` remains, and the LSP panel shows no errors or warnings.
 - **Skill install path**: Skills are copied from the local `skills/` directory (this repo) — no external clone required, unlike the Lean workflow.
+
+## References
+
+Load when needed (one level from this file):
+
+- **[references/languages.md](references/languages.md)** — Rocq version, Stdlib prefix, libraries, and proof style.

@@ -8,6 +8,7 @@ AI agent skills for the [OpenMath](https://openmath.shentu.org) formal verificat
 |-------|-------------|
 | **openmath-open-theorem** | Query and download open theorems from the OpenMath platform. Scaffold a local Lean/Rocq proof workspace. |
 | **openmath-lean-theorem** | Configure Lean environment, install external proof skills, run preflight checks, and manage LEAN4 benchmarks. |
+| **openmath-rocq-theorem** | Configure Rocq environment, install Rocq proof skills, run preflight checks, and prove OpenMath Rocq theorems. |
 | **openmath-submit-theorem** | Hash your completed proof and submit it to the Shentu blockchain (commit-reveal scheme). |
 | **openmath-claim-reward** | Query claimable rewards and generate the withdrawal command after proof verification. |
 
@@ -15,6 +16,7 @@ AI agent skills for the [OpenMath](https://openmath.shentu.org) formal verificat
 
 - An AI agent that supports skills ([Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview), [Cursor](https://www.cursor.com/), [Codex](https://openai.com/index/codex/), [Gemini CLI](https://github.com/google-gemini/gemini-cli), etc.)
 - For Lean theorem proving: [Lean 4](https://lean-lang.org/) and [elan](https://github.com/leanprover/elan)
+- For Rocq theorem proving: [Rocq](https://rocq.pro/) 9.x (via [opam](https://opam.ocaml.org/)), dune
 
 ## Install
 
@@ -46,11 +48,68 @@ Lean proving skills are maintained upstream and not bundled here. Install them s
 |--------|--------|---------|
 | [leanprover/skills](https://github.com/leanprover/skills) | `lean-proof`, `lean-bisect`, `lean-mwe`, `lean-pr`, `lean-setup`, `mathlib-build`, `mathlib-pr`, `mathlib-review`, `nightly-testing` | `npx leanprover-skills install <name>` |
 
+### Install Rocq proving skills (optional)
+
+Rocq proof skills are bundled in this repository. Using `npx skills add shentufoundation/openmath-skills` installs them automatically. When installing from source with `cp -r skills/openmath-* .claude/skills/`, also copy the Rocq skills:
+
+```bash
+for d in skills/rocq-*; do cp -R "$d" .claude/skills/; done
+```
+
+## Setup Flow
+
+```text
+  +------------------------+
+  | openmath-open-theorem   |
+  | Discover & download     |
+  | open theorems           |
+  +------------------------+
+            |
+            v
+  +------------------------+
+  | Language selection      |
+  | (from downloaded        |
+  |  theorem workspace)     |
+  +------------------------+
+            |
+     +------+------+
+     |             |
+     v             v
+  +--------+   +--------+
+  | Lean   |   | Rocq   |
+  +--------+   +--------+
+     |             |
+     v             v
+  +------------------+  +------------------+
+  | openmath-lean-   |  | openmath-rocq-   |
+  | theorem          |  | theorem          |
+  | Set up env,      |  | Set up env,      |
+  | preflight, prove |  | preflight, prove |
+  +------------------+  +------------------+
+     |                       |
+     +-----------+-----------+
+                 |
+                 v
+  +------------------------+
+  | openmath-submit-theorem |
+  | Hash & reveal proof     |
+  | on-chain                |
+  +------------------------+
+            |
+            v
+  +------------------------+
+  | openmath-claim-reward   |
+  | Withdraw verified       |
+  | rewards                 |
+  +------------------------+
+```
+
 ## Workflow
 
 ```
 1. Discover    →  openmath-open-theorem   →  Browse open theorems, download one
-2. Prove       →  openmath-lean-theorem   →  Set up Lean env, preflight, prove
+2. Prove       →  openmath-lean-theorem   →  Lean: set up env, preflight, prove
+               →  openmath-rocq-theorem   →  Rocq: set up env, preflight, prove
 3. Submit      →  openmath-submit-theorem →  Hash & reveal proof on-chain
 4. Claim       →  openmath-claim-reward   →  Withdraw earned rewards
 ```
