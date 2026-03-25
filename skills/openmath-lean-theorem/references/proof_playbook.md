@@ -29,7 +29,7 @@ Or, if you want preflight to install the missing skills for you, use an explicit
 python3 scripts/check_theorem_env.py <workspace> --auto-install-skills --install-dir .codex/skills
 ```
 
-The auto-install path clones `https://github.com/leanprover/skills.git` and copies the missing skill directories into the selected skills directory.
+The auto-install path clones `https://github.com/leanprover/skills.git` and copies the missing skill directories into the selected skills directory. Review the upstream repo first, and do not use auto-install without an explicit install dir.
 
 ## What To Read First
 
