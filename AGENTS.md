@@ -13,6 +13,7 @@ Provides AI agent skills for the [OpenMath](https://openmath-dev.shentu.org) for
 | `openmath-open-theorem` | User asks for open theorems, wants to download a theorem, or scaffold a proof workspace |
 | `openmath-lean-theorem` | User wants to configure Lean environment, install proof skills, run preflight, or prove a theorem |
 | `openmath-lean-benchmark` | User wants to run Lean benchmarks, compare proving agents/models, validate benchmark sets, or analyze benchmark results |
+| `openmath-rocq-theorem` | User wants to configure Rocq environment, run preflight, or prove a Rocq/Coq theorem |
 | `openmath-submit-theorem` | User wants to submit/hash a proof for an OpenMath theorem ID |
 | `openmath-claim-reward` | User wants to check or withdraw earned rewards |
 
@@ -31,6 +32,7 @@ mkdir -p .claude/skills && cp -r skills/openmath-* .claude/skills/
 ```
 1. Discover    →  openmath-open-theorem   →  Browse open theorems, download one
 2. Prove       →  openmath-lean-theorem   →  Set up Lean env, preflight, prove
+               →  openmath-rocq-theorem   →  Set up Rocq env, preflight, prove
 3. Benchmark   →  openmath-lean-benchmark →  Optional: evaluate Lean proof agents on bundled benchmarks
 4. Submit      →  openmath-submit-theorem →  Hash & reveal proof on-chain
 5. Claim       →  openmath-claim-reward   →  Withdraw earned rewards
@@ -70,6 +72,7 @@ openmath-skills-arena/
 │   ├── openmath-open-theorem/       # Query and download theorems
 │   ├── openmath-lean-theorem/       # Lean env and proving workflow
 │   ├── openmath-lean-benchmark/     # Lean benchmark evaluation workflow
+│   ├── openmath-rocq-theorem/       # Rocq env and proving workflow
 │   ├── openmath-submit-theorem/     # Submit proofs on-chain
 │   └── openmath-claim-reward/       # Claim rewards
 ├── bin/                             # CLI for skill installation

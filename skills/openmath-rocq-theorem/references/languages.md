@@ -11,4 +11,4 @@
     dune --version
     opam list rocq-prover
     ```
-*   **Skills**: Rocq proof skills (`rocq-proof`, `rocq-ssreflect`, `rocq-setup`, `rocq-dune`, etc.) are bundled in this repository. Copy them into your agent skills directory per the Install skills step in the workflow.
+*   **Companion skills**: Rocq proof helper skills such as `rocq-proof`, `rocq-ssreflect`, `rocq-setup`, and `rocq-dune` are separate sibling skills in the full repository. They may not be present in an isolated `openmath-rocq-theorem` skill package; use them only when they are already installed or when you have explicitly reviewed and installed them from the full repo.

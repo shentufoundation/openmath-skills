@@ -9,7 +9,7 @@ AI agent skills for the [OpenMath](https://openmath.shentu.org) formal verificat
 | **openmath-open-theorem** | Query and download open theorems from the OpenMath platform. Scaffold a local Lean/Rocq proof workspace. |
 | **openmath-lean-theorem** | Configure Lean environment, install external proof skills, run preflight checks, and prove downloaded OpenMath Lean theorems. |
 | **openmath-lean-benchmark** | Run and evaluate the bundled Lean benchmark suite for AI theorem proving. Compare agents, prompts, and benchmark results. |
-| **openmath-rocq-theorem** | Configure Rocq environment, install Rocq proof skills, run preflight checks, and prove OpenMath Rocq theorems. |
+| **openmath-rocq-theorem** | Configure Rocq environment, run preflight checks, and prove OpenMath Rocq theorems. Works with companion Rocq proof skills when they are installed. |
 | **openmath-submit-theorem** | Hash your completed proof and submit it to the Shentu blockchain (commit-reveal scheme). |
 | **openmath-claim-reward** | Query claimable rewards and generate the withdrawal command after proof verification. |
 
@@ -51,7 +51,7 @@ Lean proving skills are maintained upstream and not bundled here. Install them s
 
 ### Install Rocq proving skills (optional)
 
-Rocq proof skills are bundled in this repository. Using `npx skills add shentufoundation/openmath-skills` installs them automatically. When installing from source with `cp -r skills/openmath-* .claude/skills/`, also copy the Rocq skills:
+Companion Rocq proof skills live as separate skill folders in this repository. Installing the full repo with `npx skills add shentufoundation/openmath-skills` makes them available together. When installing from source with `cp -r skills/openmath-* .claude/skills/`, copy only the reviewed Rocq companion skills you actually want into a deliberate project-local skills directory:
 
 ```bash
 for d in skills/rocq-*; do cp -R "$d" .claude/skills/; done
