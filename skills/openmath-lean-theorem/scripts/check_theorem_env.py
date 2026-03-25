@@ -69,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--auto-install-skills",
         action="store_true",
-        help="Auto-run the standard skill install command when required skills are missing.",
+        help="Auto-install missing skills only when an explicit install dir is provided via --install-dir or OPENMATH_LEAN_SKILL_INSTALL_DIR.",
     )
     parser.add_argument(
         "--skip-build",
@@ -81,6 +81,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="Additional skills directory to search. Can be passed multiple times.",
+    )
+    parser.add_argument(
+        "--install-dir",
+        help="Explicit skills directory to install missing Lean skills into when using --auto-install-skills.",
     )
     return parser
 
@@ -199,41 +203,24 @@ def skills_status(
     return missing_required, missing_optional
 
 
-def choose_lean_install_dir(search_dirs: list[Path]) -> Path:
+def choose_lean_install_dir(
+    search_dirs: list[Path],
+    install_dir_override: str | None = None,
+) -> Path | None:
+    if install_dir_override:
+        return Path(install_dir_override).expanduser()
+
     if DEFAULT_LEAN_INSTALL_DIR:
         return Path(DEFAULT_LEAN_INSTALL_DIR).expanduser()
-
-    script_skills_dir = Path(__file__).resolve().parents[2]
-    resolved_search_dirs = []
-    for directory in search_dirs:
-        try:
-            resolved_search_dirs.append(directory.resolve())
-        except FileNotFoundError:
-            resolved_search_dirs.append(directory)
-
-    if script_skills_dir.resolve() in resolved_search_dirs:
-        return script_skills_dir
-
-    preferred_dirs = [
-        Path.home() / ".agents" / "skills",
-        Path.home() / ".agent" / "skills",
-        Path.home() / ".codex" / "skills",
-        Path.home() / ".claude" / "skills",
-        Path.home() / ".cursor" / "skills",
-        Path.home() / ".gemini" / "skills",
-    ]
-    for directory in preferred_dirs:
-        if directory in search_dirs:
-            return directory
-
-    if search_dirs:
-        return search_dirs[0]
-
-    return preferred_dirs[0]
+    return None
 
 
 def print_lean_install_commands(missing_skills: list[str], install_dir: Path) -> None:
-    print("Install steps:")
+    print("Preferred manual install:")
+    for skill in missing_skills:
+        print(f"npx leanprover-skills install {shlex.quote(skill)}")
+    print("")
+    print("Source install into the explicit target dir:")
     print(
         "git clone --depth 1 "
         f"{shlex.quote(DEFAULT_LEAN_SKILL_REPO_URL)} /tmp/leanprover-skills"
@@ -250,15 +237,39 @@ def maybe_install_lean_skills(
     missing_skills: list[str],
     search_dirs: list[Path],
     auto_install: bool,
+    install_dir_override: str | None = None,
 ) -> bool:
     if not missing_skills:
         return True
 
-    install_dir = choose_lean_install_dir(search_dirs)
+    install_dir = choose_lean_install_dir(search_dirs, install_dir_override=install_dir_override)
     print_status("info", "lean skill source", DEFAULT_LEAN_SKILL_REPO_URL)
-    print_status("info", "lean skill install dir", str(install_dir))
-    print_lean_install_commands(missing_skills, install_dir)
+    if install_dir is not None:
+        print_status("info", "lean skill install dir", str(install_dir))
+        print_status(
+            "warn",
+            "lean skill install side effect",
+            "clones the reviewed upstream repo and copies third-party skill directories into the explicit install dir",
+        )
+        print_lean_install_commands(missing_skills, install_dir)
+    else:
+        print_status(
+            "missing",
+            "lean skill install dir",
+            "pass --install-dir <path> or set OPENMATH_LEAN_SKILL_INSTALL_DIR before using --auto-install-skills",
+        )
+        print("Preferred manual install:")
+        for skill in missing_skills:
+            print(f"npx leanprover-skills install {shlex.quote(skill)}")
     if not auto_install:
+        return False
+
+    if install_dir is None:
+        print_status(
+            "missing",
+            "skill installation",
+            "auto-install requires an explicit install dir; refusing to pick a shared home-directory skills folder automatically",
+        )
         return False
 
     if not shutil.which("git"):
@@ -524,6 +535,7 @@ def main(argv: list[str] | None = None) -> int:
             missing_required,
             search_dirs,
             args.auto_install_skills,
+            args.install_dir,
         )
         if missing_required and not installed:
             ready = False

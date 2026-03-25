@@ -8,10 +8,10 @@ from dataclasses import dataclass
 class ProviderResponse:
     """Response from a proof generation provider."""
     answer_lean: str          # complete .lean file content (sorry replaced)
-    thinking: str             # chain-of-thought / reasoning content (empty str if unsupported)
+    diagnostic_output: str    # optional provider/agent diagnostic text; do not persist by default
     input_tokens: int
     output_tokens: int
-    thinking_tokens: int      # 0 if unsupported
+    diagnostic_tokens: int    # 0 if unsupported
     wall_time_seconds: float
 
 

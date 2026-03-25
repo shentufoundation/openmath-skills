@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 
 from submission_config import (
-    DEFAULT_CONFIG_PATH,
     KEYRING_BACKEND,
     SubmissionConfig,
     SubmissionConfigError,
@@ -27,8 +26,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--config",
-        default=str(DEFAULT_CONFIG_PATH),
-        help=f"Submission config path (default: {DEFAULT_CONFIG_PATH})",
+        default=None,
+        help=(
+            "Shared config path (resolution: --config, then OPENMATH_ENV_CONFIG, "
+            "then ./.openmath-skills/openmath-env.json, then ~/.openmath-skills/openmath-env.json)."
+        ),
     )
     return parser
 

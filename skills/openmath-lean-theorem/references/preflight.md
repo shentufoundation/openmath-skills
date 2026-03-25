@@ -11,7 +11,7 @@ python3 scripts/check_theorem_env.py <workspace>
 Optional:
 
 ```bash
-python3 scripts/check_theorem_env.py <workspace> --auto-install-skills
+python3 scripts/check_theorem_env.py <workspace> --auto-install-skills --install-dir .codex/skills
 python3 scripts/check_theorem_env.py <workspace> --skip-build
 ```
 
@@ -42,14 +42,21 @@ The Lean preflight does all of the following:
    lake build -q --log-level=info
    ```
 
-If required Lean skills are missing, the checker prints the standard install steps:
+If required Lean skills are missing, the preferred manual install is:
+
+```bash
+npx leanprover-skills install lean-proof
+npx leanprover-skills install mathlib-build
+```
+
+The checker also prints explicit clone-and-copy steps for environments where you want to install from source into a chosen skills dir:
 
 ```bash
 git clone --depth 1 https://github.com/leanprover/skills.git /tmp/leanprover-skills
-cp -R /tmp/leanprover-skills/skills/<missing-skill> ~/.agents/skills/
+cp -R /tmp/leanprover-skills/skills/<missing-skill> <install-dir>/
 ```
 
-If you pass `--auto-install-skills`, it will try to run the clone-and-copy flow automatically.
+If you pass `--auto-install-skills`, it will only run the clone-and-copy flow when `--install-dir <path>` or `OPENMATH_LEAN_SKILL_INSTALL_DIR` is set. It will not silently choose a shared home-directory skills folder for you. Project-local paths such as `.codex/skills` or `.claude/skills` are safer than modifying a shared skills directory by accident.
 
 ## Rocq Flow
 
@@ -73,13 +80,7 @@ That gives Rocq a defined preflight path even when no dedicated Rocq skill stack
 
 ## Skill Search Paths
 
-By default, the checker searches common skill directories such as:
-
-- `~/.agent/skills`
-- `~/.agents/skills`
-- `~/.codex/skills`
-- `~/.claude/skills`
-- project-local `.{agent}/skills`
+By default, the checker searches common installed skill directories for the active agent plus project-local `.{agent}/skills`. If your setup uses a non-standard location, point to it explicitly instead of relying on ambient home-directory defaults.
 
 Override this with:
 
@@ -92,3 +93,11 @@ Or add directories explicitly:
 ```bash
 python3 scripts/check_theorem_env.py <workspace> --skills-dir /path/to/skills
 ```
+
+To control where auto-install writes missing Lean skills:
+
+```bash
+python3 scripts/check_theorem_env.py <workspace> --auto-install-skills --install-dir /path/to/skills
+```
+
+Without `--install-dir` or `OPENMATH_LEAN_SKILL_INSTALL_DIR`, auto-install will refuse to write anywhere.

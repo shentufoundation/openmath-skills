@@ -12,7 +12,6 @@ from pathlib import Path
 
 from calculate_proof_hash import calculate_proof_hash
 from submission_config import (
-    DEFAULT_CONFIG_PATH,
     DEFAULT_SHENTU_CHAIN_ID,
     DEFAULT_SHENTU_NODE_URL,
     KEYRING_BACKEND,
@@ -81,8 +80,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--config",
-        default=str(DEFAULT_CONFIG_PATH),
-        help=f"Authz submission config path (default: {DEFAULT_CONFIG_PATH})",
+        default=None,
+        help=(
+            "Shared config path (resolution: --config, then OPENMATH_ENV_CONFIG, "
+            "then ./.openmath-skills/openmath-env.json, then ~/.openmath-skills/openmath-env.json)."
+        ),
     )
     subparsers = parser.add_subparsers(dest="mode_name", required=True)
 

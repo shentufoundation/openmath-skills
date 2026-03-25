@@ -1,6 +1,6 @@
 """Aider agent: non-interactive with --yes-always and --verbose.
 
-Note: Aider has no JSON output; stdout/stderr is captured as thinking.
+Note: Aider has no JSON output; stdout/stderr is captured as diagnostic output.
 --yes-always may not run shell commands in some versions (safety).
 """
 

@@ -38,6 +38,23 @@ def project_env_config_path() -> Path:
     return Path.cwd() / PROJECT_CONFIG_DIRNAME / ENV_CONFIG_FILENAME
 
 
+def explicit_env_config_path() -> Path | None:
+    explicit = os.environ.get("OPENMATH_ENV_CONFIG")
+    if not explicit:
+        return None
+    return Path(explicit).expanduser()
+
+
+def default_config_path() -> Path:
+    explicit = explicit_env_config_path()
+    if explicit is not None:
+        return explicit
+    return project_env_config_path()
+
+
+DEFAULT_CONFIG_PATH = default_config_path()
+
+
 def candidate_env_config_paths() -> tuple[Path, Path]:
     return (project_env_config_path(), GLOBAL_ENV_CONFIG_PATH)
 
@@ -55,9 +72,9 @@ def setup_doc_path() -> Path:
 
 
 def find_env_config() -> Path | None:
-    explicit = os.environ.get("OPENMATH_ENV_CONFIG")
-    if explicit:
-        path = Path(explicit).expanduser()
+    explicit = explicit_env_config_path()
+    if explicit is not None:
+        path = explicit
         return path if path.exists() else None
 
     for path in candidate_env_config_paths():
@@ -92,23 +109,52 @@ def default_openmath_api_host() -> str:
     return DEFAULT_OPENMATH_API_HOST
 
 
-def onboarding_text(config_path: Path) -> str:
+def onboarding_text(config_path: Path, *, selected_override: bool = False) -> str:
     project_config, global_config = candidate_env_config_paths()
+    explicit = explicit_env_config_path()
+    discovery_lines = (
+        [
+            "Config override from OPENMATH_ENV_CONFIG:",
+            f"- {explicit}",
+            "",
+            "If that file is missing or incomplete, fix it or unset OPENMATH_ENV_CONFIG before retrying.",
+        ]
+        if explicit is not None
+        else [
+            "Selected config path:",
+            f"- {config_path}",
+            "",
+            "This path was selected explicitly. Create or update this file in place.",
+        ]
+        if selected_override
+        else [
+            "Auto-discovery checks these locations:",
+            f"- {project_config}",
+            f"- {global_config}",
+        ]
+    )
     return "\n".join(
         [
             f"Environment config: {config_path}",
             "",
-            "Auto-discovery only checks these locations:",
-            f"- {project_config}",
-            f"- {global_config}",
+            *discovery_lines,
             "",
             f"First-time setup guide: {setup_doc_path()}",
             f"Example config: {example_config_path()}",
             "",
-            "If no config exists, stop and ask the user where to create it:",
-            f"- ./{PROJECT_CONFIG_DIRNAME}/{ENV_CONFIG_FILENAME} (recommended for project-specific settings)",
-            "- ~/.openmath-skills/openmath-env.json (recommended for reusable settings)",
-            "",
+            *(
+                [
+                    "If no config exists, create or update the selected config path in place.",
+                    "",
+                ]
+                if selected_override
+                else [
+                    "If no config exists, stop and ask the user where to create it:",
+                    f"- ./{PROJECT_CONFIG_DIRNAME}/{ENV_CONFIG_FILENAME} (recommended for project-specific settings)",
+                    "- ~/.openmath-skills/openmath-env.json (recommended for reusable settings)",
+                    "",
+                ]
+            ),
             "Collect at least these fields during setup:",
             "- preferred_language: lean or rocq",
             f"- config visibility / save scope: ./{PROJECT_CONFIG_DIRNAME} or ~/.openmath-skills",
@@ -118,9 +164,14 @@ def onboarding_text(config_path: Path) -> str:
     )
 
 
-def discovery_gate_text(config_path: Path, *, missing_preferred_language: bool = False) -> str:
+def discovery_gate_text(
+    config_path: Path,
+    *,
+    missing_preferred_language: bool = False,
+    selected_override: bool = False,
+) -> str:
     lines = [
-        onboarding_text(config_path),
+        onboarding_text(config_path, selected_override=selected_override),
         "",
         "First-run gate: stop here.",
         "Do not query the OpenMath theorem list, theorem detail, or download APIs until setup is complete.",
@@ -154,16 +205,19 @@ def load_openmath_preferences(
     *,
     require_preferred_language: bool = False,
 ) -> OpenMathPreferences:
+    selected_override = config_path is not None or explicit_env_config_path() is not None
     if config_path is not None:
         path = Path(config_path).expanduser()
     else:
         detected = find_env_config()
-        path = detected if detected else project_env_config_path()
+        path = detected if detected else DEFAULT_CONFIG_PATH.expanduser()
 
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise OpenMathEnvConfigError(discovery_gate_text(path)) from exc
+        raise OpenMathEnvConfigError(
+            discovery_gate_text(path, selected_override=selected_override)
+        ) from exc
     except json.JSONDecodeError as exc:
         raise OpenMathEnvConfigError(f"Invalid JSON in config file: {path}: {exc}") from exc
 
@@ -174,7 +228,11 @@ def load_openmath_preferences(
         )
     if require_preferred_language and preferred_language is None:
         raise OpenMathEnvConfigError(
-            discovery_gate_text(path, missing_preferred_language=True)
+            discovery_gate_text(
+                path,
+                missing_preferred_language=True,
+                selected_override=selected_override,
+            )
         )
 
     openmath_site_url, openmath_api_host = _load_endpoint_preferences()

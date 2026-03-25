@@ -21,6 +21,7 @@ from submission_config import (
     SubmissionConfig,
     SubmissionConfigError,
     authz_onboarding_text,
+    explicit_env_config_path,
     find_env_config,
     load_submission_config,
     project_env_config_path,
@@ -36,7 +37,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--config",
         default=None,
-        help=f"Config path (default: auto-detect {ENV_CONFIG_FILENAME})",
+        help=(
+            "Shared config path (resolution: --config, then OPENMATH_ENV_CONFIG, "
+            "then ./.openmath-skills/openmath-env.json, then ~/.openmath-skills/openmath-env.json)."
+        ),
     )
     return parser
 
@@ -101,6 +105,13 @@ def check_config_exists(config_arg: str | None) -> Path | None:
             print_status("ok", "config file", str(p))
             return p
         print_status("missing", "config file", str(p))
+        return None
+    explicit = explicit_env_config_path()
+    if explicit is not None:
+        if explicit.exists():
+            print_status("ok", "config file", str(explicit))
+            return explicit
+        print_status("missing", "config file", str(explicit))
         return None
     found = find_env_config()
     if found:
@@ -246,7 +257,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print("--- CLI ---")
     if not check_shentud():
-        print("\nInstall shentud: python3 scripts/ensure_shentud.py")
+        print("\nInspect shentud availability first: python3 scripts/ensure_shentud.py --check-only")
+        print("Only with explicit user approval, install it: python3 scripts/ensure_shentud.py --install [--persist-path]")
         return 1
 
     print("\n--- Local Key ---")

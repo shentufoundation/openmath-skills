@@ -10,8 +10,8 @@ from pathlib import Path
 # Benchmarks root (parent of utils/)
 BENCHMARKS_ROOT = Path(__file__).parent.parent.resolve()
 
-# Project root (skills/openmath-lean-theorem/benchmarks → … → project root)
-PROJECT_ROOT = BENCHMARKS_ROOT.parent.parent.parent.resolve()
+# Project root (skills/openmath-lean-benchmark → skills → project root)
+PROJECT_ROOT = BENCHMARKS_ROOT.parent.parent.resolve()
 
 # Directory paths
 BENCHMARK_DIR = BENCHMARKS_ROOT / "sets"
@@ -51,7 +51,8 @@ SORRY_PATTERN = r'\bsorry\b'
 # AI provider settings
 DEFAULT_PROVIDER = "claude"
 DEFAULT_MODEL = "claude-sonnet-4-6"
-DEFAULT_THINKING_BUDGET = 8000
+DEFAULT_REASONING_BUDGET = 8000
+DEFAULT_THINKING_BUDGET = DEFAULT_REASONING_BUDGET  # backwards-compatible alias
 
 # Agent-mode settings (used when running utils/solve.py with default agent)
 DEFAULT_AGENT_TIMEOUT = 600  # seconds the agent process is allowed to run

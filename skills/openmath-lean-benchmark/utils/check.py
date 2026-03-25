@@ -58,9 +58,10 @@ def _benchmark_ids_from_run(run_dir: Path) -> list[str]:
 class AnswerBenchmarkRunner(BenchmarkRunner):
     """BenchmarkRunner variant that compiles answer files instead of benchmark files."""
 
-    def __init__(self, run_dir: Path, verbose: bool = False):
+    def __init__(self, run_dir: Path, verbose: bool = False, include_diagnostics: bool = False):
         super().__init__(verbose=verbose)
         self.run_dir = run_dir
+        self.include_diagnostics = include_diagnostics
         self._run_metadata = _load_run_metadata(run_dir)
 
     def run_benchmark_from_answer(self, benchmark) -> dict:
@@ -97,14 +98,16 @@ class AnswerBenchmarkRunner(BenchmarkRunner):
             result["model"] = trace.get("model", self._run_metadata.get("model", ""))
             result["input_tokens"] = trace.get("input_tokens", 0)
             result["output_tokens"] = trace.get("output_tokens", 0)
-            result["thinking_tokens"] = trace.get("thinking_tokens", 0)
-            thinking_full = trace.get("thinking", "")
-            result["thinking"] = thinking_full
-            result["thinking_preview"] = thinking_full[:500]
+            result["diagnostic_tokens"] = trace.get(
+                "diagnostic_tokens",
+                trace.get("thinking_tokens", 0),
+            )
+            diagnostic_output = trace.get("diagnostic_output", trace.get("thinking", ""))
+            if self.include_diagnostics:
+                result["diagnostic_output"] = diagnostic_output
+                result["diagnostic_output_preview"] = diagnostic_output[:500]
             result["trace_file"] = f"traces/{benchmark.benchmark_id}.json"
         else:
-            result["thinking"] = ""
-            result["thinking_preview"] = ""
             result["trace_file"] = f"traces/{benchmark.benchmark_id}.json"
 
         result["answer_file"] = str(answer_rel)
@@ -131,6 +134,11 @@ def main():
         description="Check AI-generated proofs (default: latest run)"
     )
     parser.add_argument("--run-id", help="Run ID to check (default: latest)")
+    parser.add_argument(
+        "--include-diagnostics",
+        action="store_true",
+        help="Copy persisted provider/agent diagnostic output into verify_*.json. Disabled by default.",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
 
     args = parser.parse_args()
@@ -165,7 +173,11 @@ def main():
         console.print("[om.failure]No benchmarks found for traces in this run.[/om.failure]", markup=True)
         sys.exit(1)
 
-    runner = AnswerBenchmarkRunner(run_dir=run_dir, verbose=args.verbose)
+    runner = AnswerBenchmarkRunner(
+        run_dir=run_dir,
+        verbose=args.verbose,
+        include_diagnostics=args.include_diagnostics,
+    )
     run_meta = _load_run_metadata(run_dir)
 
     console.print(f"  Checking {len(benchmarks)} benchmark(s)…")
@@ -197,6 +209,7 @@ def main():
             "source_run_id": run_id,
             "provider": run_meta.get("provider", ""),
             "model": run_meta.get("model", ""),
+            "diagnostics_included": args.include_diagnostics,
             "lean_version": runner._get_lean_version(),
             "total_benchmarks": len(results),
             "total_passed": total_passed,

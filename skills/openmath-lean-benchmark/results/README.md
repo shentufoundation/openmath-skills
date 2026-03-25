@@ -2,6 +2,8 @@
 
 This directory stores test execution results and performance metrics for LEAN4 benchmark runs.
 
+Generated JSON files in this directory are local benchmark artifacts and are gitignored by default. Keep them sanitized if you intentionally export or commit them elsewhere.
+
 ## Result File Format
 
 Results are stored as JSON files with timestamps: `results_YYYYMMDD_HHMMSS.json`
@@ -83,7 +85,13 @@ python3 utils/evaluate_results.py --report performance
 ## .gitignore Considerations
 
 Results can be:
-- Committed to track progress over time
-- Ignored to keep repository clean (add `results/*.json` to .gitignore)
+- Exported elsewhere to track progress over time
+- Ignored in-repo to keep the repository clean
 
-Current configuration: Results are **tracked** by default.
+Current repository configuration: benchmark result JSON files are **ignored** by default via the root `.gitignore`.
+
+## Diagnostic Output
+
+- `validate.py` outputs do not contain raw provider reasoning or agent transcripts.
+- `check.py` includes only summary metrics by default.
+- Raw provider/agent diagnostic output appears in `verify_*.json` only when `check.py --include-diagnostics` is used and the originating solve run was created with `solve.py --save-diagnostics`.

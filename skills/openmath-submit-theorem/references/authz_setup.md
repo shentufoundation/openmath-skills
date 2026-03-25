@@ -2,9 +2,11 @@
 
 Use this when `openmath-submit-theorem` is configured for the default authz-based flow.
 
+Before writing `openmath-env.json`, creating or recovering a local key, or installing `shentud`, get explicit user approval.
+
 ## Required Local Config
 
-Create a local config file from the example. See `references/init-setup.md` for the full flow. Auto-discovery only checks `./.openmath-skills/openmath-env.json` and `~/.openmath-skills/openmath-env.json`.
+Create a local config file from the example. See `references/init-setup.md` for the full flow. Shared config resolution order is `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`.
 
 ```bash
 mkdir -p .openmath-skills
@@ -33,16 +35,24 @@ Recommended local key flow:
 shentud keys show agent-prover -a --keyring-backend os
 ```
 
-If the key does not exist, create it:
+If the key does not exist, stop and ask the user whether to create a new local key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+
+Create a new key only if the user approves:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
 ```
 
+Recover an existing key only if the user approves:
+
+```bash
+shentud keys add agent-prover --recover --keyring-backend os
+```
+
 Then save:
 
 - `agent_key_name`: `agent-prover`
-- `agent_address`: the detected or generated bech32 address
+- `agent_address`: the detected or resulting bech32 address
 
 Runtime chain settings are not stored in `openmath-env.json`:
 
@@ -59,7 +69,7 @@ If the user has not configured authz yet, use this sequence:
 4. Enter `agent_address`.
 5. Click `Authorize`.
 6. Confirm the wallet transaction(s).
-7. Re-run `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json` to confirm chain state.
+7. Re-run `python3 scripts/check_authz_setup.py [--config <selected-path>]` to confirm chain state.
 8. Do not run `generate_submission.py` in authz mode until the checker returns `Status: ready`.
 
 ## Manual CLI Fallback
@@ -108,7 +118,7 @@ Add more message types only if the agent also needs direct access outside `authz
 Run the bundled checker before generating submission commands:
 
 ```bash
-python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json
+python3 scripts/check_authz_setup.py [--config <selected-path>]
 ```
 
 The checker verifies:

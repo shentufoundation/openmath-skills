@@ -18,10 +18,10 @@ from pathlib import Path
 from .base import BaseProvider, ProviderResponse
 from .agents import get_agent_runner, SUPPORTED_AGENTS
 
-# Project root (utils/providers/agent.py → utils → benchmarks → skill → skills → project root)
+# Project root (utils/providers/agent.py → providers → utils → skill → skills → project root)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
-DEFAULT_PRELUDE_PATH = Path("skills/openmath-lean-theorem/benchmarks/prelude/default.md")
+DEFAULT_PRELUDE_PATH = Path("skills/openmath-lean-benchmark/prelude/default.md")
 
 
 def _parse_stream_line(line: str) -> tuple[str | None, dict | None]:
@@ -287,9 +287,9 @@ class AgentProvider(BaseProvider):
 
         return ProviderResponse(
             answer_lean=answer_lean,
-            thinking=agent_output,
+            diagnostic_output=agent_output,
             input_tokens=0,
             output_tokens=0,
-            thinking_tokens=0,
+            diagnostic_tokens=0,
             wall_time_seconds=round(wall_time, 3),
         )

@@ -1,21 +1,30 @@
 ---
 name: openmath-submit-theorem
 description: Submits proofs or theorem solutions to the OpenMath platform. Use when the user wants to commit a proof hash or reveal a Lean/Rocq proof for a specific OpenMath theorem ID on the Shentu network.
-version: v1.0.1
+version: v1.1.1
+requirements:
+  commands:
+    - shentud
+side_effects:
+  - May write or update openmath-env.json after explicit user approval
+  - May create or recover a local shentud key only after explicit user approval
+  - May download and install shentud only when ensure_shentud.py is run with --install; shell rc updates require --persist-path
 ---
 
 # OpenMath Submit Theorem
 
 ## Instructions
 
-Two-stage submission on Shentu: (1) generate and broadcast proof hash via authz; (2) after hash lock, generate and broadcast proof detail. Default: authz + feegrant from `prover_address` (the user's OpenMath Wallet Address). Config: `openmath-env.json` is auto-discovered only from `./.openmath-skills/openmath-env.json` or `~/.openmath-skills/openmath-env.json`; override with `--config` or `OPENMATH_ENV_CONFIG`. Shentu chain/RPC settings come from `SHENTU_CHAIN_ID` and `SHENTU_NODE_URL` or built-in defaults, not from `openmath-env.json`. The skill always uses `--keyring-backend os` for local key lookups and generated submission commands. Direct signer fallback: `generate_submission.py --mode direct`.
+Two-stage submission on Shentu: (1) generate and broadcast proof hash via authz; (2) after hash lock, generate and broadcast proof detail. Default: authz + feegrant from `prover_address` (the user's OpenMath Wallet Address). Shared config resolution order: `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, treat it as the selected config path. If that file is missing or invalid, stop and fix it instead of silently falling back. Shentu chain/RPC settings come from `SHENTU_CHAIN_ID` and `SHENTU_NODE_URL` or built-in defaults, not from `openmath-env.json`. The skill always uses `--keyring-backend os` for local key lookups and generated submission commands. Direct signer fallback: `generate_submission.py --mode direct`.
+
+Before any action that downloads or installs `shentud`, writes `openmath-env.json`, creates or recovers a local key, or appends to a shell rc file, get explicit user approval. Do not generate or manage mnemonics on the user's machine without that approval.
 
 ### First-run gate
 
-If `openmath-env.json` is missing from both `./.openmath-skills/openmath-env.json` and `~/.openmath-skills/openmath-env.json`, or if the config exists but is missing `prover_address`, `agent_address`, or `agent_key_name`, **do not proceed**. Follow [references/init-setup.md](references/init-setup.md), then validate:
+If the selected `openmath-env.json` is missing, or if it exists but is missing `prover_address`, `agent_address`, or `agent_key_name`, **do not proceed**. Follow [references/init-setup.md](references/init-setup.md), and treat any config write or key creation/recovery as an explicit-user-approval step, then validate:
 
 ```bash
-python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json
+python3 scripts/check_authz_setup.py [--config <path>]
 ```
 
 Require `Status: ready` before any submission. Repeat on each new machine or workspace.
@@ -34,19 +43,22 @@ This gate is mandatory for scripts that advance the submission flow. `generate_s
 
 | Script | Command | Use when |
 |--------|---------|----------|
-| Authz readiness | `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json` | Before first submission and when changing env; validates CLI, keys, RPC, authz, feegrant. |
+| Authz readiness | `python3 scripts/check_authz_setup.py [--config <path>]` | Before first submission and when changing env; validates CLI, keys, RPC, authz, feegrant. |
 | Stage 1 commands | `python3 scripts/generate_submission.py hash <theoremId> <proofPath> <proverKeyOrAddress> <proverAddr>` | Generating proofhash.json and broadcast command for commit. In authz mode, refuses to continue until the first-run gate passes. |
 | Stage 2 commands | `python3 scripts/generate_submission.py detail <proofId> <proofPath> <proverKeyOrAddress>` | Generating proofdetail.json and broadcast command for reveal (use proof_id from Stage 1). In authz mode, refuses to continue until the first-run gate passes. |
 | Query tx | `python3 scripts/query_submission_status.py tx <txhash> [--wait-seconds 6]` | After broadcast to confirm inclusion. |
 | Query theorem | `python3 scripts/query_submission_status.py theorem <theoremId> [--wait-seconds 6]` | Final status check. |
 | Proof hash (debug) | `python3 scripts/calculate_proof_hash.py <theoremId> <proverAddress> <proofContentOrFile>` | Standalone hash check; normally used by generate_submission. |
-| Install shentud | `python3 scripts/ensure_shentud.py` | When shentud is missing or broken. |
+| Check shentud | `python3 scripts/ensure_shentud.py --check-only` | Inspect whether a working shentud binary is already available without downloading or writing anything. |
+| Install shentud | `python3 scripts/ensure_shentud.py --install [--persist-path]` | Only after explicit user approval; downloads and installs shentud, and updates the shell rc file only when `--persist-path` is passed. |
 
-`submission_config.py` loads and validates only the identity/authz fields in `openmath-env.json` from `./.openmath-skills/` or `~/.openmath-skills/` (unless `--config` / `OPENMATH_ENV_CONFIG` is set). Chain/RPC settings come from `SHENTU_CHAIN_ID` and `SHENTU_NODE_URL`.
+`submission_config.py` loads and validates only the identity/authz fields in `openmath-env.json` using the shared config resolution order above. Chain/RPC settings come from `SHENTU_CHAIN_ID` and `SHENTU_NODE_URL`.
 
 ### Notes
 
 - **Authz**: Default flow uses `shentud tx authz exec` with `--fee-granter <prover-address>`. For direct signer use `--mode direct` on `generate_submission.py`.
+- **Key material**: Never auto-create or auto-recover a local `shentud` key. If `shentud keys add` is needed, ask the user first whether they want to create a new key or recover an existing one, and warn that mnemonics or recovery material may be shown.
+- **Installer side effects**: `ensure_shentud.py` only installs when `--install` is passed. PATH persistence is off by default and requires `--persist-path`.
 - **Block wait**: After each broadcast wait ~5–10 s before querying.
 
 ## References

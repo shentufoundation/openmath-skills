@@ -4,8 +4,8 @@
 
 Triggered when:
 
-1. No `openmath-env.json` found in `./.openmath-skills/` or `~/.openmath-skills/` -> full authz submission setup
-2. `openmath-env.json` found but one or more required identity fields are missing -> missing-fields setup
+1. No usable `openmath-env.json` is found through the shared resolution order -> full authz submission setup
+2. The selected `openmath-env.json` exists but one or more required identity fields are missing -> missing-fields setup
 
 Required identity fields:
 
@@ -15,7 +15,17 @@ Required identity fields:
 
 Default local agent key name: `agent-prover`
 
-This is a hard gate for authz submission. Until setup is complete and `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json` returns `Status: ready`, do not generate stage 1 or stage 2 authz submission commands.
+This is a hard gate for authz submission. Until setup is complete and `python3 scripts/check_authz_setup.py [--config <selected-path>]` returns `Status: ready`, do not generate stage 1 or stage 2 authz submission commands.
+
+Before any step that writes `openmath-env.json`, creates or recovers a local `shentud` key, downloads `shentud`, or appends to a shell rc file, get explicit user approval.
+
+Shared config resolution order:
+1. `--config <path>`
+2. `OPENMATH_ENV_CONFIG`
+3. `./.openmath-skills/openmath-env.json`
+4. `~/.openmath-skills/openmath-env.json`
+
+If `OPENMATH_ENV_CONFIG` is set, treat it as the selected config path. If that file is missing or invalid, fix it or unset it instead of silently falling back.
 
 ## Setup Flow
 
@@ -52,9 +62,11 @@ No project/global config found        Config found, required fields missing
          Continue                                Continue
 ```
 
-## Flow 1: No `openmath-env.json` (Full Authz Setup)
+## Flow 1: No Usable `openmath-env.json` (Full Authz Setup)
 
 **Language**: Use the user's input language or saved conversation language preference.
+
+If `--config` or `OPENMATH_ENV_CONFIG` already selects a specific config path, do not ask the user to choose Project vs User first. Create or update that selected file in place.
 
 Use AskUserQuestion with all independent questions in one call:
 
@@ -116,7 +128,7 @@ shentud keys show agent-prover -a --keyring-backend os
 
 ### If the key exists
 
-Do this automatically:
+Resolve this without asking for alternate key names first:
 
 1. Save `agent_key_name` as `agent-prover`
 2. Save the detected bech32 address as `agent_address`
@@ -124,17 +136,25 @@ Do this automatically:
 
 ### If the key does not exist
 
-Create it immediately:
+Stop and ask the user whether to create a new local key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+
+Create a new key only if the user approves:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
+```
+
+Recover an existing key only if the user approves:
+
+```bash
+shentud keys add agent-prover --recover --keyring-backend os
 ```
 
 Then:
 
 1. Tell the user to securely save any mnemonic or recovery material shown by `shentud`
 2. Save `agent_key_name` as `agent-prover`
-3. Save the generated bech32 address as `agent_address`
+3. Save the resulting bech32 address as `agent_address`
 4. Continue to website authorization
 
 Only ask for a different key name or different `agent_address` if the user explicitly wants to override the default `agent-prover` flow.
@@ -195,16 +215,24 @@ If it exists, save:
 - `agent_key_name`: `agent-prover`
 - `agent_address`: the detected address
 
-If it does not exist, create it:
+If it does not exist, stop and ask the user whether to create a new key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+
+Create a new key only if the user approves:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
 ```
 
+Recover an existing key only if the user approves:
+
+```bash
+shentud keys add agent-prover --recover --keyring-backend os
+```
+
 Then save:
 
 - `agent_key_name`: `agent-prover`
-- `agent_address`: the generated address
+- `agent_address`: the resulting address
 
 Only ask the user for a different key name or different `agent_address` if they explicitly want to override the default.
 
@@ -225,7 +253,7 @@ Recommended flow:
 3. Enter `agent_address`
 4. Click `Authorize`
 5. Confirm the wallet transaction(s) for authz and feegrant
-6. Run `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json`
+6. Run `python3 scripts/check_authz_setup.py [--config <selected-path>]`
 7. Only after `Status: ready`, continue to `generate_submission.py`
 
 If the website flow is unavailable, use `references/authz_setup.md`.
@@ -247,12 +275,12 @@ Expected behavior after setup:
 
 1. `openmath-env.json` exists and contains the required identity fields
 2. The local `agent_key_name` resolves to the configured `agent_address`
-3. `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json` returns `Status: ready`
+3. `python3 scripts/check_authz_setup.py [--config <selected-path>]` returns `Status: ready`
 4. Only then may `generate_submission.py` in authz mode continue
 
 ## Notes
 
 - Prefer asking all independent questions in one call; only split when local key creation introduces a dependency
-- Do not ask the user to type `agent_key_name` or `agent_address` if the default local key flow can resolve them automatically
+- Do not ask the user to type `agent_key_name` or `agent_address` if the default local key flow can resolve them automatically, but do ask before creating or recovering any local key
 - User-facing language naming is `rocq`
 - Reward querying can stay read-only, but authz submission must respect this gate

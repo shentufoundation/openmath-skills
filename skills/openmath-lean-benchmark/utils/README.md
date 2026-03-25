@@ -8,11 +8,20 @@ Python scripts for managing and running LEAN4 benchmarks: **solve** (generate pr
 pip3 install -r requirements.txt
 ```
 
+## Provider Requirements and Privacy
+
+- `python3 solve.py --prompt ...` uses the Anthropic API and requires `ANTHROPIC_API_KEY`.
+- `python3 solve.py --agent claude-code|gemini|opencode|codex|aider` requires the selected CLI to be installed and already authenticated/configured locally.
+- Agent-mode runs execute the selected CLI in a temporary workspace. The prelude narrows the task in prompt text, but enforcement still depends on the CLI runtime you choose. Some backends, such as `claude-code`, use non-interactive full-permission flags so unattended runs can finish.
+- The `codex` backend is a placeholder command builder and may need local CLI argument customization before use.
+- Generated files under `skills/openmath-lean-benchmark/answers/` and `skills/openmath-lean-benchmark/results/*.json` are local artifacts and are gitignored by default.
+- Raw provider/agent diagnostic output is not persisted unless you opt in with `--save-diagnostics` on `solve.py` and `--include-diagnostics` on `check.py`.
+
 ## Scripts
 
 ### `solve.py` (generate proofs)
 
-Default: `--agent claude-code --prelude skills/openmath-lean-theorem/benchmarks/prelude/default.md`. Generates Lean 4 proofs via a headless agent CLI or a direct LLM call (`--prompt`).
+Default: `--agent claude-code --prelude skills/openmath-lean-benchmark/prelude/default.md`. Generates Lean 4 proofs via a headless agent CLI or a direct LLM call (`--prompt`).
 
 **Usage:**
 ```bash
@@ -27,7 +36,7 @@ python3 solve.py --difficulty easy --topic algebra
 python3 solve.py --prompt "Complete the Lean 4 proof." --benchmark-id easy_algebra_001
 
 # Custom prelude or agent
-python3 solve.py --prelude skills/openmath-lean-theorem/benchmarks/prelude/default.md --agent aider
+python3 solve.py --prelude skills/openmath-lean-benchmark/prelude/default.md --agent aider
 python3 solve.py --agent-timeout 1200 -v
 
 # Stream agent output live (Rich panels, stream-json, recorded to trace)
@@ -35,13 +44,16 @@ python3 solve.py -v --benchmark-id easy_algebra_001
 
 # Optional: cap spend per agent run (e.g. claude --max-budget-usd)
 python3 solve.py --agent-max-budget-usd 0.5
+
+# Optional: persist raw provider/agent diagnostics to trace files
+python3 solve.py --save-diagnostics --benchmark-id easy_algebra_001
 ```
 
-**Output:** `skills/openmath-lean-theorem/benchmarks/answers/run_YYYYMMDD_HHMMSS/` with proof files and `traces/{benchmark_id}.json`.
+**Output:** `skills/openmath-lean-benchmark/answers/run_YYYYMMDD_HHMMSS/` with proof files and minimal `traces/{benchmark_id}.json`. Raw diagnostic output is only included when `--save-diagnostics` is passed.
 
 ### `check.py` (verify a run)
 
-By default checks the **latest** run under `skills/openmath-lean-theorem/benchmarks/answers/`. Use `--run-id` to check a specific run. Benchmarks are discovered from the run’s `traces/` (no --difficulty/--topic/--benchmark-id).
+By default checks the **latest** run under `skills/openmath-lean-benchmark/answers/`. Use `--run-id` to check a specific run. Benchmarks are discovered from the run’s `traces/` (no --difficulty/--topic/--benchmark-id).
 
 **Usage:**
 ```bash
@@ -51,13 +63,16 @@ python3 check.py
 # Check specific run
 python3 check.py --run-id run_20260311_194305
 python3 check.py -v
+
+# Optional: copy previously saved diagnostics into verify_*.json
+python3 check.py --run-id run_20260311_194305 --include-diagnostics
 ```
 
-**Output:** `skills/openmath-lean-theorem/benchmarks/results/verify_{run_id}_{timestamp}.json` with per-result `thinking`, `thinking_preview`, and `trace_file`.
+**Output:** `skills/openmath-lean-benchmark/results/verify_{run_id}_{timestamp}.json` with per-result token counts and `trace_file`. Raw diagnostic output is only copied into that file when `--include-diagnostics` is passed and the original solve run used `--save-diagnostics`.
 
 ### `validate.py` (benchmark_sets compilability)
 
-Validates that open (sorry) questions in `skills/openmath-lean-theorem/benchmarks/sets/` compile. Expected: all **failure** (compiles with sorry), not **error**. Exits 1 if any benchmark fails to compile.
+Validates that open (sorry) questions in `skills/openmath-lean-benchmark/sets/` compile. Expected: all **failure** (compiles with sorry), not **error**. Exits 1 if any benchmark fails to compile.
 
 **Usage:**
 ```bash
@@ -141,12 +156,13 @@ Configuration settings for the benchmark system.
 - `MAX_MEMORY_MB`: Maximum memory limit (4096 MB)
 - Directory paths (BENCHMARK_DIR, RESULTS_DIR, ANSWERS_DIR)
 - Agent mode: `DEFAULT_AGENT_TIMEOUT` (600s), `DEFAULT_AGENT_MAX_BUDGET_USD` (e.g. 1.0; optional cap per run)
+- Direct API mode: `DEFAULT_REASONING_BUDGET` controls Anthropic extended reasoning tokens
 
 ### `providers/` and agent prelude
 
-- **providers/agent.py**: Loads prelude from `skills/openmath-lean-theorem/benchmarks/prelude/` (default: `skills/openmath-lean-theorem/benchmarks/prelude/default.md`), formats it with `{filepath}` and `{allowed_directory}`, and runs the chosen agent in a temp dir.
-- **providers/agents/**: Per-agent modules that build the CLI argv for non-interactive, full-permissions, JSON/verbose runs.
-- **prelude/**: Use `--prelude skills/openmath-lean-theorem/benchmarks/prelude/your.md` in `solve.py` to swap the task prompt.
+- **providers/agent.py**: Loads prelude from `skills/openmath-lean-benchmark/prelude/` (default: `skills/openmath-lean-benchmark/prelude/default.md`), formats it with `{filepath}` and `{allowed_directory}`, and runs the chosen agent in a temp dir.
+- **providers/agents/**: Per-agent modules that build the CLI argv for unattended runs. Some backends use full-permission CLI flags; review the backend module before enabling it in a sensitive environment.
+- **prelude/**: Use `--prelude skills/openmath-lean-benchmark/prelude/your.md` in `solve.py` to swap the task prompt.
 
 ### Skills manager
 
@@ -165,9 +181,9 @@ Skills are managed via `npx openmath-skills` (see project root README). This is 
 
 ## Output Format
 
-**validate.py**: Results in `skills/openmath-lean-theorem/benchmarks/results/results_{timestamp}.json` with status per benchmark (expected: failure = compilable with sorry; error = broken).
+**validate.py**: Results in `skills/openmath-lean-benchmark/results/results_{timestamp}.json` with status per benchmark (expected: failure = compilable with sorry; error = broken).
 
-**check.py**: `skills/openmath-lean-theorem/benchmarks/results/verify_{run_id}_{timestamp}.json` with per-result `thinking`, `thinking_preview`, and `trace_file` for analysis.
+**check.py**: `skills/openmath-lean-benchmark/results/verify_{run_id}_{timestamp}.json` with per-result token counts and `trace_file`. Diagnostic output is included only when explicitly requested.
 
 ## Requirements
 
@@ -193,3 +209,7 @@ Skills are managed via `npx openmath-skills` (see project root README). This is 
 **Memory errors:**
 - Check `MAX_MEMORY_MB` setting
 - Monitor system resources during benchmark runs
+
+**Agent CLI missing or not authenticated:**
+- Install the selected CLI and make sure it is already signed in/configured locally
+- `--prompt` mode specifically requires `ANTHROPIC_API_KEY`

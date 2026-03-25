@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from openmath_env_config import OpenMathEnvConfigError, load_openmath_preferences
+from openmath_env_config import DEFAULT_CONFIG_PATH, OpenMathEnvConfigError, load_openmath_preferences
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,7 +16,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--config",
         default=None,
-        help="Explicit config path. Default: auto-discover from ./.openmath-skills or ~/.openmath-skills.",
+        help=(
+            "Shared config path (resolution: --config, then OPENMATH_ENV_CONFIG, "
+            f"then ./.openmath-skills/openmath-env.json, then ~/.openmath-skills/openmath-env.json; "
+            f"default target: {DEFAULT_CONFIG_PATH})."
+        ),
     )
     return parser
 

@@ -25,11 +25,18 @@ def project_env_config_path() -> Path:
     return Path.cwd() / PROJECT_CONFIG_DIRNAME / ENV_CONFIG_FILENAME
 
 
+def explicit_env_config_path() -> Path | None:
+    explicit = os.environ.get("OPENMATH_ENV_CONFIG")
+    if not explicit:
+        return None
+    return Path(explicit).expanduser()
+
+
 def default_config_path() -> Path:
     """Return the default config path used in CLI help and fallbacks."""
-    explicit = os.environ.get("OPENMATH_ENV_CONFIG")
-    if explicit:
-        return Path(explicit).expanduser()
+    explicit = explicit_env_config_path()
+    if explicit is not None:
+        return explicit
     return project_env_config_path()
 
 
@@ -87,9 +94,9 @@ def candidate_env_config_paths() -> tuple[Path, Path]:
 
 def find_env_config() -> Path | None:
     """Return the first existing env config from project-local or ~/.openmath-skills."""
-    explicit = os.environ.get("OPENMATH_ENV_CONFIG")
-    if explicit:
-        p = Path(explicit).expanduser()
+    explicit = explicit_env_config_path()
+    if explicit is not None:
+        p = explicit
         return p if p.exists() else None
 
     for p in candidate_env_config_paths():
@@ -118,16 +125,37 @@ def authz_onboarding_text(
     *,
     config_exists: bool = False,
     missing_fields: tuple[str, ...] = (),
+    selected_override: bool = False,
 ) -> str:
     env_example = env_example_config_path()
     setup_doc = setup_doc_path()
     project_config, global_config = candidate_env_config_paths()
+    explicit = explicit_env_config_path()
+    discovery_lines = (
+        [
+            "Config override from OPENMATH_ENV_CONFIG:",
+            f"- {explicit}",
+            "",
+            "If that file is missing or incomplete, fix it or unset OPENMATH_ENV_CONFIG before retrying.",
+        ]
+        if explicit is not None
+        else [
+            "Selected config path:",
+            f"- {config_path}",
+            "",
+            "This path was selected explicitly. Create or update this file in place.",
+        ]
+        if selected_override
+        else [
+            "Auto-discovery checks these locations:",
+            f"- {project_config}",
+            f"- {global_config}",
+        ]
+    )
     lines = [
         f"Environment config: {config_path}",
         "",
-        "Auto-discovery only checks these locations:",
-        f"- {project_config}",
-        f"- {global_config}",
+        *discovery_lines,
         "",
         f"Init setup guide: {setup_doc}",
         f"Copy and edit the example config: {env_example}",
@@ -139,12 +167,21 @@ def authz_onboarding_text(
             [
                 "No config file exists yet.",
                 "",
-                "Stop and ask the user where to create it:",
-                f"- ./{PROJECT_CONFIG_DIRNAME}/{ENV_CONFIG_FILENAME} (recommended for project-specific settings)",
-                "- ~/.openmath-skills/openmath-env.json (recommended for reusable settings)",
-                "",
-                "Then create openmath-env.json there from the example config.",
-                "",
+                *(
+                    [
+                        "Create or update the selected config path in place.",
+                        "",
+                    ]
+                    if selected_override
+                    else [
+                        "Stop and ask the user where to create it:",
+                        f"- ./{PROJECT_CONFIG_DIRNAME}/{ENV_CONFIG_FILENAME} (recommended for project-specific settings)",
+                        "- ~/.openmath-skills/openmath-env.json (recommended for reusable settings)",
+                        "",
+                        "Then create openmath-env.json there from the example config.",
+                        "",
+                    ]
+                ),
             ]
         )
     else:
@@ -187,10 +224,12 @@ def authz_onboarding_text(
             f"  shentud keys show {DEFAULT_AGENT_KEY_NAME} -a --keyring-backend {KEYRING_BACKEND}",
             f"If the key exists, save `agent_key_name` as `{DEFAULT_AGENT_KEY_NAME}` and use the returned address as `agent_address`.",
             "",
-            f"If the key does not exist, create it immediately with:",
+            "If the key does not exist, stop and ask the user whether to create a new local key or recover an existing one.",
+            "Only after explicit approval should you run one of these commands:",
             f"  shentud keys add {DEFAULT_AGENT_KEY_NAME} --keyring-backend {KEYRING_BACKEND}",
-            f"Then save `agent_key_name` as `{DEFAULT_AGENT_KEY_NAME}` and save the generated address as `agent_address`.",
-            "Tell the user to securely store any mnemonic or recovery material shown during key creation.",
+            f"  shentud keys add {DEFAULT_AGENT_KEY_NAME} --recover --keyring-backend {KEYRING_BACKEND}",
+            f"Then save `agent_key_name` as `{DEFAULT_AGENT_KEY_NAME}` and save the resulting address as `agent_address`.",
+            "Tell the user to securely store any mnemonic or recovery material shown during key creation or recovery.",
             "",
             "When `prover_address` and `agent_address` are both known, and authz/feegrant is still missing:",
             "1. Open https://openmath.shentu.org/OpenMath/Profile",
@@ -205,20 +244,27 @@ def authz_onboarding_text(
     return "\n".join(lines)
 
 
-def _read_json(path: Path) -> dict:
+def _read_json(path: Path, *, selected_override: bool = False) -> dict:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise SubmissionConfigError(authz_onboarding_text(path, config_exists=False)) from exc
+        raise SubmissionConfigError(
+            authz_onboarding_text(
+                path,
+                config_exists=False,
+                selected_override=selected_override,
+            )
+        ) from exc
     except json.JSONDecodeError as exc:
         raise SubmissionConfigError(f"Invalid JSON in config file: {path}: {exc}") from exc
 
 
-def _require_string(data: dict, key: str, path: Path) -> str:
+def _require_string(data: dict, key: str, path: Path, *, selected_override: bool = False) -> str:
     value = _get_real_value(data, key)
     if not value or value.startswith("<"):
         raise SubmissionConfigError(
-            f"Config file {path} is missing a real value for `{key}`.\n\n{authz_onboarding_text(path)}"
+            f"Config file {path} is missing a real value for `{key}`.\n\n"
+            f"{authz_onboarding_text(path, selected_override=selected_override)}"
         )
     return value
 
@@ -246,24 +292,40 @@ def _resolve_network() -> tuple[str, str]:
 
 
 def load_submission_config(config_path: str | os.PathLike[str] | None = None) -> SubmissionConfig:
+    selected_override = config_path is not None or explicit_env_config_path() is not None
     if config_path is not None:
         path = Path(config_path).expanduser()
     else:
         detected = find_env_config()
         path = detected if detected else DEFAULT_CONFIG_PATH.expanduser()
 
-    data = _read_json(path)
+    data = _read_json(path, selected_override=selected_override)
     missing_fields = missing_identity_fields(data)
     if missing_fields:
         fields = ", ".join(missing_fields)
         raise SubmissionConfigError(
             f"Config file {path} is missing required authz identity fields: {fields}.\n\n"
-            f"{authz_onboarding_text(path, config_exists=True, missing_fields=missing_fields)}"
+            f"{authz_onboarding_text(path, config_exists=True, missing_fields=missing_fields, selected_override=selected_override)}"
         )
 
-    prover_address = _require_string(data, "prover_address", path)
-    agent_key_name = _require_string(data, "agent_key_name", path)
-    agent_address = _require_string(data, "agent_address", path)
+    prover_address = _require_string(
+        data,
+        "prover_address",
+        path,
+        selected_override=selected_override,
+    )
+    agent_key_name = _require_string(
+        data,
+        "agent_key_name",
+        path,
+        selected_override=selected_override,
+    )
+    agent_address = _require_string(
+        data,
+        "agent_address",
+        path,
+        selected_override=selected_override,
+    )
     fee_granter_address = prover_address
 
     shentu_chain_id, shentu_node_url = _resolve_network()

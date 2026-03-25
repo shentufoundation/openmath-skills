@@ -20,7 +20,13 @@ If `shentud` is missing or the keyring is not configured, stop here and install/
 If `command -v shentud` fails, the default path is broken, or `shentud version` cannot run, use the bundled installer:
 
 ```bash
-python3 scripts/ensure_shentud.py
+python3 scripts/ensure_shentud.py --check-only
+```
+
+Only after explicit user approval should you run:
+
+```bash
+python3 scripts/ensure_shentud.py --install [--persist-path]
 ```
 
 ### Install `shentud` if Missing
@@ -30,7 +36,7 @@ python3 scripts/ensure_shentud.py
    *   `shentud_2.17.0_arm64_macos`
    *   `shentud_2.17.0_linux_amd64`
 3. Choose the binary that matches the current machine architecture and operating system.
-4. After downloading, place the binary somewhere in your global `PATH` and make sure the executable name is `shentud`, so it can be called directly from any shell.
+4. After downloading, place the binary somewhere in your `PATH` and make sure the executable name is `shentud`, so it can be called directly from any shell.
 5. Verify the installation with:
 
 ```bash
@@ -73,22 +79,23 @@ If you prefer a system-wide location, you can also place the binary in a directo
 The bundled helper below can handle the common case where `shentud` is missing or the default PATH points to a broken binary:
 
 ```bash
-python3 scripts/ensure_shentud.py
+python3 scripts/ensure_shentud.py --check-only
 ```
 
 What it does:
 1. Checks whether an existing `shentud` binary already works.
-2. If not, downloads the latest release from GitHub.
+2. If you later rerun it with `--install`, it downloads the latest release from GitHub.
 3. Selects the correct binary for the current OS and CPU architecture.
 4. Installs it as `~/bin/shentud`.
-5. Appends the install directory to the active shell rc file unless `--no-persist-path` is used.
+5. Appends the install directory to the active shell rc file only if `--persist-path` is used.
 
 Useful options:
 
 ```bash
 python3 scripts/ensure_shentud.py --check-only
+python3 scripts/ensure_shentud.py --install
+python3 scripts/ensure_shentud.py --install --persist-path
 python3 scripts/ensure_shentud.py --force-download
-python3 scripts/ensure_shentud.py --no-persist-path
 ```
 
 ### Configure Keys if `shentud keys list` Is Empty
@@ -128,7 +135,7 @@ The default OpenMath submission flow now uses:
 2. an outer `shentud tx authz exec`
 3. a feegrant from the OpenMath Wallet Address owner (`prover_address`)
 
-Create a local config file first. Auto-discovery only checks `./.openmath-skills/openmath-env.json` and `~/.openmath-skills/openmath-env.json`. See `references/init-setup.md` for the full setup flow.
+Create a local config file first. Shared config resolution order is `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, fix or unset it instead of silently falling back. See `references/init-setup.md` for the full setup flow.
 
 ```bash
 mkdir -p .openmath-skills
@@ -158,7 +165,7 @@ Runtime chain settings are not stored in `openmath-env.json`:
 If the config is missing from both locations, or if it exists but is missing `prover_address`, `agent_address`, or `agent_key_name`, stop and run `references/init-setup.md`, then validate:
 
 ```bash
-python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json
+python3 scripts/check_authz_setup.py [--config <selected-path>]
 ```
 
 Do not run `generate_submission.py` in authz mode until that command returns `Status: ready`.
@@ -183,11 +190,16 @@ Before generating or broadcasting any submission command, confirm all 6 items be
    ```bash
    shentud keys show agent-prover -a --keyring-backend os
    ```
-   If the key is missing, create it immediately:
+   If the key is missing, stop and ask the user whether to create a new key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+   Create a new key only if the user approves:
    ```bash
    shentud keys add agent-prover --keyring-backend os
    ```
-   Then save the generated address as `agent_address` and tell the user to securely store the mnemonic or recovery material.
+   Recover an existing key only if the user approves:
+   ```bash
+   shentud keys add agent-prover --recover --keyring-backend os
+   ```
+   Then save the resulting address as `agent_address` and tell the user to securely store the mnemonic or recovery material.
 3. **The OpenMath Wallet Address owner (`prover_address`) has enough `uctk`**
    ```bash
    shentud q bank balance --denom uctk --address <FEE_GRANTER_ADDRESS> --node <shentu_node_url>
@@ -195,7 +207,7 @@ Before generating or broadcasting any submission command, confirm all 6 items be
    Use `SHENTU_NODE_URL` or the built-in default `https://rpc.shentu.org:443`. Make sure the balance covers the proof deposit and gas fees.
 4. **The authz + feegrant setup is ready**
    ```bash
-   python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json
+   python3 scripts/check_authz_setup.py [--config <selected-path>]
    ```
    Confirm that the required authz grants exist and the feegrant allows `/cosmos.authz.v1beta1.MsgExec`. `generate_submission.py` in authz mode should be treated as blocked until this returns `Status: ready`.
 5. **The proof file is the right local file**
@@ -214,7 +226,7 @@ If the environment, authz config, balance, proof file, and theorem ID are alread
 
 1. Verify authz readiness:
    ```bash
-   python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json
+   python3 scripts/check_authz_setup.py [--config <selected-path>]
    ```
 2. Generate the Stage 1 commands:
    ```bash

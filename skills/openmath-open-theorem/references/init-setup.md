@@ -4,10 +4,18 @@
 
 Triggered when:
 
-1. No `openmath-env.json` found in `./.openmath-skills/` or `~/.openmath-skills/` -> full discovery setup
-2. `openmath-env.json` found but `preferred_language` is missing -> language selection only
+1. No usable `openmath-env.json` is found through the shared resolution order -> full discovery setup
+2. The selected `openmath-env.json` exists but `preferred_language` is missing -> language selection only
 
 This is a hard gate. Until setup is complete, do not call the OpenMath theorem list, theorem detail, or download APIs.
+
+Shared config resolution order:
+1. `--config <path>`
+2. `OPENMATH_ENV_CONFIG`
+3. `./.openmath-skills/openmath-env.json`
+4. `~/.openmath-skills/openmath-env.json`
+
+If `OPENMATH_ENV_CONFIG` is set, treat it as the selected config path. If that file is missing or invalid, fix it or unset it instead of silently falling back.
 
 ## Setup Flow
 
@@ -34,9 +42,11 @@ No project/global config found        Config found, preferred_language missing
          Continue                                Continue
 ```
 
-## Flow 1: No `openmath-env.json` (Full Discovery Setup)
+## Flow 1: No Usable `openmath-env.json` (Full Discovery Setup)
 
 **Language**: Use the user's input language or saved conversation language preference.
+
+If `--config` or `OPENMATH_ENV_CONFIG` already selects a specific config path, do not ask the user to choose Project vs User first. Create or update that selected file in place.
 
 Use AskUserQuestion with all questions in one call:
 

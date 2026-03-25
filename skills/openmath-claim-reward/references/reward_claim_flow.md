@@ -1,5 +1,7 @@
 # OpenMath Reward Claim Reference
 
+Requires trusted local `python3` and `shentud` on `PATH`. Queries use the local `shentud` CLI plus a Shentu RPC endpoint. Withdrawals additionally rely on the local OS keyring through `shentud --keyring-backend os`, so confirm the key name, resolved address, and node URL before broadcasting.
+
 ## Query Rewards First
 Reward claiming is address-based, not theorem-based. Always query the address first:
 
@@ -9,10 +11,14 @@ shentud q bounty rewards <address> --node <shentu_node_url>
 
 If the address is not provided explicitly, prefer auto-discovering `prover_address` from:
 
+- `--config <path>` when passed to the helper script
+- `OPENMATH_ENV_CONFIG` when set
 - `./.openmath-skills/openmath-env.json`
 - `~/.openmath-skills/openmath-env.json`
 
 If neither config contains `prover_address`, stop and follow `references/init-setup.md`.
+
+If you want to force a specific config file for the helper script, set `OPENMATH_ENV_CONFIG=/path/to/openmath-env.json` or pass `--config /path/to/openmath-env.json`.
 
 Use `SHENTU_NODE_URL` or the built-in default. Example (mainnet):
 
@@ -72,7 +78,8 @@ shentud q tx <txhash> --node <shentu_node_url>
 ## Practical Notes
 - Rewards are withdrawn per address, so there is no need to specify theorem ID or proof ID when claiming.
 - For local signing consistency, always include `--keyring-backend os` in the withdraw command.
+- Before withdrawal, verify that `shentud keys show <key-name> -a --keyring-backend os` resolves to the same reward address you queried.
 - Do not create a new random local key for withdrawal unless it controls the same reward address.
 - The current Shentu flow requires explicit gas settings to avoid broadcast failures:
   `--gas-prices 0.025uctk --gas-adjustment 2.0 --gas auto`
-- The helper script `python3 scripts/query_reward_status.py rewards [address]` already treats `no rewards found` as zero claimable rewards, and can auto-discover `prover_address` from `openmath-env.json`.
+- The helper script `python3 scripts/query_reward_status.py rewards [address]` already treats `no rewards found` as zero claimable rewards, and can auto-discover `prover_address` from `OPENMATH_ENV_CONFIG` or the standard `openmath-env.json` locations.
