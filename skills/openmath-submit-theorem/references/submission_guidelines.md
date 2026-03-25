@@ -135,7 +135,7 @@ The default OpenMath submission flow now uses:
 2. an outer `shentud tx authz exec`
 3. a feegrant from the OpenMath Wallet Address owner (`prover_address`)
 
-Create a local config file first. Auto-discovery only checks `./.openmath-skills/openmath-env.json` and `~/.openmath-skills/openmath-env.json`. See `references/init-setup.md` for the full setup flow.
+Create a local config file first. Shared config resolution order is `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, fix or unset it instead of silently falling back. See `references/init-setup.md` for the full setup flow.
 
 ```bash
 mkdir -p .openmath-skills
@@ -165,7 +165,7 @@ Runtime chain settings are not stored in `openmath-env.json`:
 If the config is missing from both locations, or if it exists but is missing `prover_address`, `agent_address`, or `agent_key_name`, stop and run `references/init-setup.md`, then validate:
 
 ```bash
-python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json
+python3 scripts/check_authz_setup.py [--config <selected-path>]
 ```
 
 Do not run `generate_submission.py` in authz mode until that command returns `Status: ready`.
@@ -207,7 +207,7 @@ Before generating or broadcasting any submission command, confirm all 6 items be
    Use `SHENTU_NODE_URL` or the built-in default `https://rpc.shentu.org:443`. Make sure the balance covers the proof deposit and gas fees.
 4. **The authz + feegrant setup is ready**
    ```bash
-   python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json
+   python3 scripts/check_authz_setup.py [--config <selected-path>]
    ```
    Confirm that the required authz grants exist and the feegrant allows `/cosmos.authz.v1beta1.MsgExec`. `generate_submission.py` in authz mode should be treated as blocked until this returns `Status: ready`.
 5. **The proof file is the right local file**
@@ -226,7 +226,7 @@ If the environment, authz config, balance, proof file, and theorem ID are alread
 
 1. Verify authz readiness:
    ```bash
-   python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json
+   python3 scripts/check_authz_setup.py [--config <selected-path>]
    ```
 2. Generate the Stage 1 commands:
    ```bash

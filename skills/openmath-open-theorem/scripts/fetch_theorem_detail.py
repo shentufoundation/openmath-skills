@@ -7,7 +7,7 @@ import argparse
 import sys
 
 from openmath_api import fetch_theorem_detail, format_datetime
-from openmath_env_config import OpenMathEnvConfigError, load_openmath_preferences
+from openmath_env_config import DEFAULT_CONFIG_PATH, OpenMathEnvConfigError, load_openmath_preferences
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -15,7 +15,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--config",
         default=None,
-        help="Explicit config path. Default: auto-discover from ./.openmath-skills or ~/.openmath-skills.",
+        help=(
+            "Shared config path (resolution: --config, then OPENMATH_ENV_CONFIG, "
+            f"then ./.openmath-skills/openmath-env.json, then ~/.openmath-skills/openmath-env.json; "
+            f"default target: {DEFAULT_CONFIG_PATH})."
+        ),
     )
     parser.add_argument("theorem_id", type=int, help="OpenMath theorem ID")
     return parser.parse_args(argv)

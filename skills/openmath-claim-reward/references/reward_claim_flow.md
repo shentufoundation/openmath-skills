@@ -9,6 +9,7 @@ shentud q bounty rewards <address> --node <shentu_node_url>
 
 If the address is not provided explicitly, prefer auto-discovering `prover_address` from:
 
+- `--config <path>` when passed to the helper script
 - `OPENMATH_ENV_CONFIG` when set
 - `./.openmath-skills/openmath-env.json`
 - `~/.openmath-skills/openmath-env.json`

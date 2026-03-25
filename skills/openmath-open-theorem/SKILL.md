@@ -1,7 +1,7 @@
 ---
 name: openmath-open-theorem
 description: Queries open formal verification theorems from the OpenMath platform. Use when the user asks for a list of open theorems, wants Lean or Rocq-specific theorems, needs full detail for a theorem ID, or wants to download a theorem and scaffold a local proof workspace.
-version: v1.0.0
+version: v1.0.1
 ---
 
 # OpenMath Open Theorem
@@ -10,9 +10,11 @@ version: v1.0.0
 
 Query the OpenMath library to discover and scaffold open theorems. The discovery scripts use `OPENMATH_SITE_URL` and `OPENMATH_API_HOST` when set, and otherwise fall back to the default production endpoints.
 
+Shared config resolution order: `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, treat it as the selected config path. If that file is missing or invalid, stop and fix it instead of silently falling back.
+
 ### First-run gate
 
-Before discovery on a new machine or workspace, check the shared `openmath-env.json`. Auto-discovery only checks `./.openmath-skills/openmath-env.json` and `~/.openmath-skills/openmath-env.json`.
+Before discovery on a new machine or workspace, resolve the shared `openmath-env.json` using the order above, then check it.
 
 This gate is mandatory. If `openmath-env.json` is missing, or if it exists but `preferred_language` is missing, stop. Do not query the OpenMath theorem list, theorem detail, or download APIs until setup is complete.
 
@@ -43,7 +45,7 @@ python3 scripts/check_openmath_env.py
 
 | Script | Command | Use when |
 |--------|---------|----------|
-| Shared env check | `python3 scripts/check_openmath_env.py [--config <path>]` | Mandatory first-run gate; validates shared config, preferred language, and the resolved OpenMath website/API endpoints. |
+| Shared env check | `python3 scripts/check_openmath_env.py [--config <path>]` | Mandatory first-run gate; validates shared config, preferred language, and the resolved OpenMath website/API endpoints using the shared config resolution order above. |
 | List open theorems | `python3 scripts/fetch_theorems.py [--config <path>] [language]` | Listing or filtering open theorems after the first-run gate passes. `language`: optional `lean` or `rocq`. Without an explicit CLI language, query only the configured `preferred_language`. |
 | Theorem detail | `python3 scripts/fetch_theorem_detail.py [--config <path>] <id>` | Need description, metadata, and formal definition (source) for a theorem ID; refuses to run until the first-run gate passes. |
 | Download & scaffold | `python3 scripts/download_theorem.py [--config <path>] <id> [--output-dir <path>] [--force]` | Creating a local Lean or Rocq proof workspace after the first-run gate passes. |
@@ -53,6 +55,7 @@ python3 scripts/check_openmath_env.py
 ### Notes
 
 - **Endpoints**: Default website is `https://openmath.shentu.org`; default API host is `https://openmath-be.shentu.org`. Runtime overrides: `OPENMATH_SITE_URL`, `OPENMATH_API_HOST`.
+- **Config override**: `OPENMATH_ENV_CONFIG` selects a specific shared config file. `--config` overrides it for a single command.
 - **Language**: User-facing and API language naming is `rocq`.
 - **No fallback**: If `preferred_language` is `lean`, query only Lean by default. If no theorems are found, report that result and stop; do not automatically query Rocq, and vice versa.
 - **Lean scaffold**: Pins Lean and mathlib4 to `v4.28.0`. Rocq scaffold is `_CoqProject`-based.

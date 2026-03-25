@@ -12,6 +12,14 @@ For read-only reward queries, an explicit address is enough. A config file is on
 
 For withdrawals, the local signing key must control the same address as `prover_address`. Do not create a new random key for withdrawal unless it is the same wallet that owns the rewards.
 
+Shared config resolution order:
+1. `--config <path>`
+2. `OPENMATH_ENV_CONFIG`
+3. `./.openmath-skills/openmath-env.json`
+4. `~/.openmath-skills/openmath-env.json`
+
+If `OPENMATH_ENV_CONFIG` is set, treat it as the selected config path. If that file is missing or invalid, fix it or unset it instead of silently falling back.
+
 ## Setup Flow
 
 ```text

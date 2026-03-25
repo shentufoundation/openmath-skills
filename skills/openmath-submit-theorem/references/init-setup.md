@@ -4,8 +4,8 @@
 
 Triggered when:
 
-1. No `openmath-env.json` found in `./.openmath-skills/` or `~/.openmath-skills/` -> full authz submission setup
-2. `openmath-env.json` found but one or more required identity fields are missing -> missing-fields setup
+1. No usable `openmath-env.json` is found through the shared resolution order -> full authz submission setup
+2. The selected `openmath-env.json` exists but one or more required identity fields are missing -> missing-fields setup
 
 Required identity fields:
 
@@ -15,9 +15,17 @@ Required identity fields:
 
 Default local agent key name: `agent-prover`
 
-This is a hard gate for authz submission. Until setup is complete and `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json` returns `Status: ready`, do not generate stage 1 or stage 2 authz submission commands.
+This is a hard gate for authz submission. Until setup is complete and `python3 scripts/check_authz_setup.py [--config <selected-path>]` returns `Status: ready`, do not generate stage 1 or stage 2 authz submission commands.
 
 Before any step that writes `openmath-env.json`, creates or recovers a local `shentud` key, downloads `shentud`, or appends to a shell rc file, get explicit user approval.
+
+Shared config resolution order:
+1. `--config <path>`
+2. `OPENMATH_ENV_CONFIG`
+3. `./.openmath-skills/openmath-env.json`
+4. `~/.openmath-skills/openmath-env.json`
+
+If `OPENMATH_ENV_CONFIG` is set, treat it as the selected config path. If that file is missing or invalid, fix it or unset it instead of silently falling back.
 
 ## Setup Flow
 
@@ -54,9 +62,11 @@ No project/global config found        Config found, required fields missing
          Continue                                Continue
 ```
 
-## Flow 1: No `openmath-env.json` (Full Authz Setup)
+## Flow 1: No Usable `openmath-env.json` (Full Authz Setup)
 
 **Language**: Use the user's input language or saved conversation language preference.
+
+If `--config` or `OPENMATH_ENV_CONFIG` already selects a specific config path, do not ask the user to choose Project vs User first. Create or update that selected file in place.
 
 Use AskUserQuestion with all independent questions in one call:
 
@@ -243,7 +253,7 @@ Recommended flow:
 3. Enter `agent_address`
 4. Click `Authorize`
 5. Confirm the wallet transaction(s) for authz and feegrant
-6. Run `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json`
+6. Run `python3 scripts/check_authz_setup.py [--config <selected-path>]`
 7. Only after `Status: ready`, continue to `generate_submission.py`
 
 If the website flow is unavailable, use `references/authz_setup.md`.
@@ -265,7 +275,7 @@ Expected behavior after setup:
 
 1. `openmath-env.json` exists and contains the required identity fields
 2. The local `agent_key_name` resolves to the configured `agent_address`
-3. `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json` returns `Status: ready`
+3. `python3 scripts/check_authz_setup.py [--config <selected-path>]` returns `Status: ready`
 4. Only then may `generate_submission.py` in authz mode continue
 
 ## Notes

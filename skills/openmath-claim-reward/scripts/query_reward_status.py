@@ -126,7 +126,11 @@ def build_parser() -> argparse.ArgumentParser:
     rewards_parser.add_argument(
         "--config",
         default=None,
-        help=f"Reward config path (default: --config, then OPENMATH_ENV_CONFIG, then auto-discovery starting at {DEFAULT_CONFIG_PATH})",
+        help=(
+            "Shared config path (resolution: --config, then OPENMATH_ENV_CONFIG, "
+            f"then ./.openmath-skills/openmath-env.json, then ~/.openmath-skills/openmath-env.json; "
+            f"default target: {DEFAULT_CONFIG_PATH})."
+        ),
     )
     rewards_parser.add_argument(
         "--wait-seconds",

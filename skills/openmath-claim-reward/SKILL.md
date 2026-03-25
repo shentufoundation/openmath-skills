@@ -1,14 +1,14 @@
 ---
 name: openmath-claim-reward
 description: Claims earned rewards from the OpenMath platform. Use when the user wants to query claimable imported/proof rewards or withdraw verified Shentu rewards after a proof has passed verification.
-version: v1.0.2
+version: v1.0.3
 ---
 
 # OpenMath Claim Reward
 
 ## Instructions
 
-Query and withdraw rewards for verified OpenMath activity on Shentu. Flow: query `bounty rewards` → withdraw via `bounty withdraw-rewards` → wait 5–10 s → re-query. Uses `SHENTU_CHAIN_ID` and `SHENTU_NODE_URL` for runtime chain/RPC settings, with built-in mainnet defaults if unset. If you want to point at a specific config file, set `OPENMATH_ENV_CONFIG` or pass `--config`.
+Query and withdraw rewards for verified OpenMath activity on Shentu. Flow: query `bounty rewards` → withdraw via `bounty withdraw-rewards` → wait 5–10 s → re-query. Uses `SHENTU_CHAIN_ID` and `SHENTU_NODE_URL` for runtime chain/RPC settings, with built-in mainnet defaults if unset. Shared config resolution order: `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, treat it as the selected config path. If that file is missing or invalid, stop and fix it instead of silently falling back.
 
 ### First-run gate
 
@@ -31,7 +31,7 @@ For withdrawals, do not proceed until a local `os` keyring key is known for the 
 
 | Script | Command | Use when |
 |--------|---------|----------|
-| Query rewards | `python3 scripts/query_reward_status.py rewards [address] [--config .openmath-skills/openmath-env.json] [--wait-seconds 0]` | Checking claimable imported_rewards and proof_rewards for an address, or auto-discovering `prover_address` from `--config`, `OPENMATH_ENV_CONFIG`, or the default config locations when omitted. |
+| Query rewards | `python3 scripts/query_reward_status.py rewards [address] [--config <path>] [--wait-seconds 0]` | Checking claimable imported_rewards and proof_rewards for an address, or auto-discovering `prover_address` from `--config`, `OPENMATH_ENV_CONFIG`, or the default config locations when omitted. |
 | Query tx | `python3 scripts/query_reward_status.py tx <txhash> [--wait-seconds 6]` | After withdraw broadcast to confirm inclusion. |
 
 Withdraw is done with raw `shentud tx bounty withdraw-rewards --keyring-backend os` (see workflow above).
