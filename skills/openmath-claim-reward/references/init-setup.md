@@ -2,6 +2,8 @@
 
 ## Overview
 
+Requires trusted local `python3` and `shentud` on `PATH`. Reward queries shell out to local `shentud` and talk to a Shentu RPC endpoint. Reward withdrawals also rely on the local OS keyring via `shentud --keyring-backend os`, so do not proceed until the user confirms the matching key/address and the node URL they trust.
+
 Triggered when:
 
 1. The user wants to query rewards but did not provide an address

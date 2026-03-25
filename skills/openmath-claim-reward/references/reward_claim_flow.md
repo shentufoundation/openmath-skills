@@ -1,5 +1,7 @@
 # OpenMath Reward Claim Reference
 
+Requires trusted local `python3` and `shentud` on `PATH`. Queries use the local `shentud` CLI plus a Shentu RPC endpoint. Withdrawals additionally rely on the local OS keyring through `shentud --keyring-backend os`, so confirm the key name, resolved address, and node URL before broadcasting.
+
 ## Query Rewards First
 Reward claiming is address-based, not theorem-based. Always query the address first:
 

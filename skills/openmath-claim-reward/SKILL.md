@@ -1,7 +1,19 @@
 ---
 name: openmath-claim-reward
 description: Claims earned rewards from the OpenMath platform. Use when the user wants to query claimable imported/proof rewards or withdraw verified Shentu rewards after a proof has passed verification.
-version: v1.0.3
+version: v1.0.4
+requirements:
+  commands:
+    - python3
+    - shentud
+  environment_variables:
+    - OPENMATH_ENV_CONFIG
+    - SHENTU_CHAIN_ID
+    - SHENTU_NODE_URL
+side_effects:
+  - Reads shared openmath-env.json from --config, OPENMATH_ENV_CONFIG, or the standard project/user config locations
+  - Queries a remote Shentu RPC endpoint; defaults to https://rpc.shentu.org:443 unless SHENTU_NODE_URL or --node overrides it
+  - Reward withdrawal commands use the local OS keyring through shentud --keyring-backend os
 ---
 
 # OpenMath Claim Reward
@@ -10,6 +22,8 @@ version: v1.0.3
 
 Query and withdraw rewards for verified OpenMath activity on Shentu. Flow: query `bounty rewards` → withdraw via `bounty withdraw-rewards` → wait 5–10 s → re-query. Uses `SHENTU_CHAIN_ID` and `SHENTU_NODE_URL` for runtime chain/RPC settings, with built-in mainnet defaults if unset. Shared config resolution order: `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, treat it as the selected config path. If that file is missing or invalid, stop and fix it instead of silently falling back.
 
+Requires trusted local `python3` and `shentud` binaries on `PATH`. Read-only reward queries shell out to local `shentud` and query a Shentu RPC endpoint. Withdrawals additionally rely on the local OS keyring via `shentud --keyring-backend os`. Before any withdrawal, confirm the key name, resolved address, and node URL with the user.
+
 ### First-run gate
 
 If the user already provided an address explicitly, reward query can run immediately.
@@ -17,6 +31,7 @@ If the user already provided an address explicitly, reward query can run immedia
 If no address was provided, auto-discover `prover_address` from `OPENMATH_ENV_CONFIG` when it is set; otherwise check only `./.openmath-skills/openmath-env.json` or `~/.openmath-skills/openmath-env.json`. If no usable config exists, or if the config exists but `prover_address` is missing, **do not guess the address**. Follow [references/init-setup.md](references/init-setup.md).
 
 For withdrawals, do not proceed until a local `os` keyring key is known for the same address.
+Do not broadcast a withdrawal until the user confirms the matching key name/address and the RPC node they want to use.
 
 ### Workflow checklist
 
@@ -41,6 +56,8 @@ Withdraw is done with raw `shentud tx bounty withdraw-rewards --keyring-backend 
 - **Buckets**: `imported_rewards` (theorem imported/referenced), `proof_rewards` (proofs verified). One withdraw pulls both if present.
 - **Mainnet**: Default `--chain-id shentu-2.2 --node https://rpc.shentu.org:443`.
 - **Config override**: Set `OPENMATH_ENV_CONFIG=/path/to/openmath-env.json` or use `--config` if you want a non-default config path.
+- **Requirements**: Requires trusted local `python3` and `shentud` on `PATH`.
+- **Env vars**: `OPENMATH_ENV_CONFIG`, `SHENTU_CHAIN_ID`, and `SHENTU_NODE_URL` are optional overrides, not required for the default mainnet flow.
 - **Keyring**: Always use `--keyring-backend os` for reward withdrawal commands generated from this skill.
 - **Trust boundary**: Reward queries shell out to local `shentud`; withdrawals also sign through the local OS keyring. Verify the key name, resolved address, and RPC/node URL before broadcasting.
 
