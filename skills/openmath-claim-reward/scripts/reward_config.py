@@ -22,10 +22,17 @@ def project_env_config_path() -> Path:
     return Path.cwd() / PROJECT_CONFIG_DIRNAME / ENV_CONFIG_FILENAME
 
 
-def default_config_path() -> Path:
+def explicit_env_config_path() -> Path | None:
     explicit = os.environ.get("OPENMATH_ENV_CONFIG")
-    if explicit:
-        return Path(explicit).expanduser()
+    if not explicit:
+        return None
+    return Path(explicit).expanduser()
+
+
+def default_config_path() -> Path:
+    explicit = explicit_env_config_path()
+    if explicit is not None:
+        return explicit
     return project_env_config_path()
 
 
@@ -41,9 +48,9 @@ def setup_doc_path() -> Path:
 
 
 def find_env_config() -> Path | None:
-    explicit = os.environ.get("OPENMATH_ENV_CONFIG")
-    if explicit:
-        p = Path(explicit).expanduser()
+    explicit = explicit_env_config_path()
+    if explicit is not None:
+        p = explicit
         return p if p.exists() else None
 
     for path in candidate_env_config_paths():
@@ -56,13 +63,26 @@ def reward_onboarding_text(config_path: Path | None = None) -> str:
     project_config, global_config = candidate_env_config_paths()
     setup_doc = setup_doc_path()
     target = config_path or DEFAULT_CONFIG_PATH
+    explicit = explicit_env_config_path()
+    discovery_lines = (
+        [
+            "Config override from OPENMATH_ENV_CONFIG:",
+            f"- {explicit}",
+            "",
+            "If that file is missing or incomplete, fix it or unset OPENMATH_ENV_CONFIG before retrying.",
+        ]
+        if explicit is not None
+        else [
+            "Auto-discovery checks these locations:",
+            f"- {project_config}",
+            f"- {global_config}",
+        ]
+    )
     return "\n".join(
         [
             f"Reward config: {target}",
             "",
-            "Auto-discovery only checks these locations:",
-            f"- {project_config}",
-            f"- {global_config}",
+            *discovery_lines,
             "",
             f"Init setup guide: {setup_doc}",
             "",
@@ -70,9 +90,10 @@ def reward_onboarding_text(config_path: Path | None = None) -> str:
             "1. Open https://openmath.shentu.org",
             "2. Connect the wallet and enter Profile",
             "3. Copy Wallet Address",
-            "4. Save that address as `prover_address` in openmath-env.json, or pass it directly to the rewards query command",
+            "4. Save that address as `prover_address` in openmath-env.json, pass it directly to the rewards query command, or point to a config file with `--config` / `OPENMATH_ENV_CONFIG`",
             "",
             "For reward withdrawal, a local os-keyring key must control the same address.",
+            "Before signing, verify the chosen key name resolves to the same reward address.",
             "Do not create a new random key for withdrawal unless it is the same wallet that owns the rewards.",
         ]
     )

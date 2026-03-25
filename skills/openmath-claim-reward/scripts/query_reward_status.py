@@ -24,11 +24,16 @@ DEFAULT_NODE_URL = DEFAULT_NODE_URL_FALLBACK
 
 
 def run_shentud_query(args: list[str]) -> dict:
-    result = subprocess.run(
-        ["shentud", *args, "-o", "json"],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["shentud", *args, "-o", "json"],
+            capture_output=True,
+            text=True,
+        )
+    except (FileNotFoundError, OSError) as exc:
+        raise RuntimeError(
+            "shentud is unavailable. Install or fix a trusted local shentud binary before querying or withdrawing rewards."
+        ) from exc
     if result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or "shentud query failed"
         raise RuntimeError(message)
@@ -106,7 +111,7 @@ def summarize_tx(payload: dict) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Wait for a Shentu block, then query rewards or tx status."
+        description="Wait for a Shentu block, then query rewards or tx status. Reward config can come from --config or OPENMATH_ENV_CONFIG."
     )
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
@@ -116,12 +121,12 @@ def build_parser() -> argparse.ArgumentParser:
     rewards_parser.add_argument(
         "address",
         nargs="?",
-        help="Address to query; if omitted, use prover_address from openmath-env.json",
+        help="Address to query; if omitted, use prover_address from --config, OPENMATH_ENV_CONFIG, or the default openmath-env.json locations",
     )
     rewards_parser.add_argument(
         "--config",
         default=None,
-        help=f"Reward config path (default auto-discovery: {DEFAULT_CONFIG_PATH})",
+        help=f"Reward config path (default: --config, then OPENMATH_ENV_CONFIG, then auto-discovery starting at {DEFAULT_CONFIG_PATH})",
     )
     rewards_parser.add_argument(
         "--wait-seconds",
