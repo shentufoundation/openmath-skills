@@ -1,11 +1,19 @@
 ---
 name: openmath-submit-theorem
 description: Submits proofs or theorem solutions to the OpenMath platform. Use when the user wants to commit a proof hash or reveal a Lean/Rocq proof for a specific OpenMath theorem ID on the Shentu network.
-version: v1.1.1
+version: v1.0.3
 requirements:
   commands:
+    - python3
     - shentud
+  environment_variables:
+    - OPENMATH_ENV_CONFIG
+    - SHENTU_CHAIN_ID
+    - SHENTU_NODE_URL
 side_effects:
+  - Reads shared openmath-env.json from --config, OPENMATH_ENV_CONFIG, or the standard project/user config locations
+  - Queries and broadcasts to a remote Shentu RPC endpoint; defaults to https://rpc.shentu.org:443 unless SHENTU_NODE_URL overrides it
+  - Uses the local OS keyring through shentud --keyring-backend os for key lookups and authz-exec signing
   - May write or update openmath-env.json after explicit user approval
   - May create or recover a local shentud key only after explicit user approval
   - May download and install shentud only when ensure_shentud.py is run with --install; shell rc updates require --persist-path
