@@ -69,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--auto-install-skills",
         action="store_true",
-        help="Auto-run the standard skill install command when required skills are missing.",
+        help="Auto-install missing skills into the chosen skills dir when required skills are missing.",
     )
     parser.add_argument(
         "--skip-build",
@@ -81,6 +81,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="Additional skills directory to search. Can be passed multiple times.",
+    )
+    parser.add_argument(
+        "--install-dir",
+        help="Explicit skills directory to install missing Lean skills into when using --auto-install-skills.",
     )
     return parser
 
@@ -199,7 +203,10 @@ def skills_status(
     return missing_required, missing_optional
 
 
-def choose_lean_install_dir(search_dirs: list[Path]) -> Path:
+def choose_lean_install_dir(search_dirs: list[Path], install_dir_override: str | None = None) -> Path:
+    if install_dir_override:
+        return Path(install_dir_override).expanduser()
+
     if DEFAULT_LEAN_INSTALL_DIR:
         return Path(DEFAULT_LEAN_INSTALL_DIR).expanduser()
 
@@ -250,13 +257,15 @@ def maybe_install_lean_skills(
     missing_skills: list[str],
     search_dirs: list[Path],
     auto_install: bool,
+    install_dir_override: str | None = None,
 ) -> bool:
     if not missing_skills:
         return True
 
-    install_dir = choose_lean_install_dir(search_dirs)
+    install_dir = choose_lean_install_dir(search_dirs, install_dir_override=install_dir_override)
     print_status("info", "lean skill source", DEFAULT_LEAN_SKILL_REPO_URL)
     print_status("info", "lean skill install dir", str(install_dir))
+    print_status("warn", "lean skill install side effect", "copies third-party skill directories into the selected skills dir")
     print_lean_install_commands(missing_skills, install_dir)
     if not auto_install:
         return False
@@ -524,6 +533,7 @@ def main(argv: list[str] | None = None) -> int:
             missing_required,
             search_dirs,
             args.auto_install_skills,
+            args.install_dir,
         )
         if missing_required and not installed:
             ready = False

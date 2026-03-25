@@ -7,7 +7,8 @@ AI agent skills for the [OpenMath](https://openmath.shentu.org) formal verificat
 | Skill | Description |
 |-------|-------------|
 | **openmath-open-theorem** | Query and download open theorems from the OpenMath platform. Scaffold a local Lean/Rocq proof workspace. |
-| **openmath-lean-theorem** | Configure Lean environment, install external proof skills, run preflight checks, and manage LEAN4 benchmarks. |
+| **openmath-lean-theorem** | Configure Lean environment, install external proof skills, run preflight checks, and prove downloaded OpenMath Lean theorems. |
+| **openmath-lean-benchmark** | Run and evaluate the bundled Lean benchmark suite for AI theorem proving. Compare agents, prompts, and benchmark results. |
 | **openmath-rocq-theorem** | Configure Rocq environment, install Rocq proof skills, run preflight checks, and prove OpenMath Rocq theorems. |
 | **openmath-submit-theorem** | Hash your completed proof and submit it to the Shentu blockchain (commit-reveal scheme). |
 | **openmath-claim-reward** | Query claimable rewards and generate the withdrawal command after proof verification. |
@@ -110,29 +111,37 @@ for d in skills/rocq-*; do cp -R "$d" .claude/skills/; done
 1. Discover    →  openmath-open-theorem   →  Browse open theorems, download one
 2. Prove       →  openmath-lean-theorem   →  Lean: set up env, preflight, prove
                →  openmath-rocq-theorem   →  Rocq: set up env, preflight, prove
-3. Submit      →  openmath-submit-theorem →  Hash & reveal proof on-chain
-4. Claim       →  openmath-claim-reward   →  Withdraw earned rewards
+3. Benchmark   →  openmath-lean-benchmark →  Optional: evaluate Lean proof agents on bundled benchmarks
+4. Submit      →  openmath-submit-theorem →  Hash & reveal proof on-chain
+5. Claim       →  openmath-claim-reward   →  Withdraw earned rewards
 ```
 
 ## Benchmarks
 
-This repository includes a LEAN4 benchmark subsystem under `skills/openmath-lean-theorem/benchmarks/` for evaluating AI theorem proving capabilities. See `skills/openmath-lean-theorem/benchmarks/utils/README.md` for details.
+This repository includes a standalone LEAN4 benchmark skill under `skills/openmath-lean-benchmark/` for evaluating AI theorem proving capabilities. See `skills/openmath-lean-benchmark/utils/README.md` for details.
+
+Benchmark runtime notes:
+
+- `python3 .../solve.py --prompt ...` uses the Anthropic API and requires `ANTHROPIC_API_KEY`.
+- `python3 .../solve.py --agent <name>` requires the selected CLI (`claude`, `gemini`, `aider`, `opencode`, or `codex`) to be installed and already authenticated/configured locally.
+- Benchmark runs write local artifacts under `skills/openmath-lean-benchmark/answers/` and `skills/openmath-lean-benchmark/results/*.json`; those generated files are gitignored by default.
+- Raw provider/agent diagnostic output is not persisted unless you explicitly opt in with `--save-diagnostics` on `solve.py` and `--include-diagnostics` on `check.py`.
 
 ```bash
 # Setup
-pip3 install -r skills/openmath-lean-theorem/benchmarks/utils/requirements.txt
+pip3 install -r skills/openmath-lean-benchmark/utils/requirements.txt
 
 # Generate proofs with an AI agent
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent claude-code --benchmark-id easy_algebra_001
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent claude-code --benchmark-id easy_algebra_001
 
 # Verify generated proofs
-python3 skills/openmath-lean-theorem/benchmarks/utils/check.py
+python3 skills/openmath-lean-benchmark/utils/check.py
 ```
 
 ## Documentation
 
 - **AGENTS.md** - Full guide for AI agents working with this repository
-- **skills/openmath-lean-theorem/benchmarks/utils/README.md** - Benchmark scripts, solve/check workflow, and agent mode
+- **skills/openmath-lean-benchmark/utils/README.md** - Benchmark scripts, solve/check workflow, and agent mode
 
 ## License
 

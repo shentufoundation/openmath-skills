@@ -19,48 +19,60 @@ sets/benchmark_metadata.json → BenchmarkManager (load/filter)
  → ResultsEvaluator (analysis and reports)
 ```
 
+## Runtime and Privacy Notes
+
+- `solve.py --prompt ...` requires `ANTHROPIC_API_KEY`.
+- `solve.py --agent <name>` requires the selected CLI to be installed and already authenticated/configured locally.
+- Agent-mode runs execute an external CLI in a temporary workspace. The benchmark prelude narrows the task in prompt text, but actual filesystem/network enforcement depends on the selected CLI runtime. Some backends, such as `claude-code`, use non-interactive full-permission flags so unattended runs can finish.
+- The `codex` backend is currently a placeholder CLI builder and may need local customization before use.
+- Generated artifacts under `answers/` and `results/*.json` are local benchmark outputs and are gitignored by default in this repository.
+- Raw provider reasoning or agent transcript data is not persisted unless you explicitly opt in with `solve.py --save-diagnostics` and `check.py --include-diagnostics`.
+
 ---
 
 ## Generating Proofs with an AI Agent (Phase 1)
 
 The primary workflow for automated proof generation is a two-phase pipeline:
 
-**Solve** (`solve.py`) — default: `--agent claude-code --prelude skills/openmath-lean-theorem/benchmarks/prelude/default.md`
+**Solve** (`solve.py`) — default: `--agent claude-code --prelude skills/openmath-lean-benchmark/prelude/default.md`
 **Check** (`check.py`) — default: latest run; `--run-id` to specify
 
 #### Phase 1: Direct API mode (single LLM call)
 ```bash
 # Default: agent + prelude (all benchmarks)
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py
+python3 skills/openmath-lean-benchmark/utils/solve.py
 
 # Scope: single benchmark, difficulty, topic (can combine)
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --difficulty easy --topic algebra
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --benchmark-id easy_algebra_001 -v
+python3 skills/openmath-lean-benchmark/utils/solve.py --difficulty easy --topic algebra
+python3 skills/openmath-lean-benchmark/utils/solve.py --benchmark-id easy_algebra_001 -v
 
 # Direct LLM call
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --prompt "Complete the proof." --benchmark-id easy_algebra_001
+python3 skills/openmath-lean-benchmark/utils/solve.py --prompt "Complete the proof." --benchmark-id easy_algebra_001
 
 # Agent mode (default is claude-code; override agent/prelude)
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent claude-code --benchmark-id easy_algebra_001
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent aider --difficulty easy
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent gemini --difficulty medium
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent opencode --difficulty easy
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent claude-code --difficulty hard --agent-timeout 1200
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --prelude skills/openmath-lean-theorem/benchmarks/prelude/default.md --benchmark-id easy_algebra_001
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent claude-code --benchmark-id easy_algebra_001
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent aider --difficulty easy
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent gemini --difficulty medium
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent opencode --difficulty easy
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent claude-code --difficulty hard --agent-timeout 1200
+python3 skills/openmath-lean-benchmark/utils/solve.py --prelude skills/openmath-lean-benchmark/prelude/default.md --benchmark-id easy_algebra_001
 
-# Stream agent output live (Rich panels, stream-json, recorded to trace) and optional budget
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py -v --benchmark-id easy_algebra_001
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent-max-budget-usd 0.5
+# Stream agent output live (Rich panels, stream-json) and optional budget
+python3 skills/openmath-lean-benchmark/utils/solve.py -v --benchmark-id easy_algebra_001
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent-max-budget-usd 0.5
+
+# Optional: persist raw provider/agent diagnostics to trace files
+python3 skills/openmath-lean-benchmark/utils/solve.py --save-diagnostics --benchmark-id easy_algebra_001
 ```
 
 #### Check: Verify generated proofs
 ```bash
 # Check latest run
-python3 skills/openmath-lean-theorem/benchmarks/utils/check.py
+python3 skills/openmath-lean-benchmark/utils/check.py
 
 # Check specific run
-python3 skills/openmath-lean-theorem/benchmarks/utils/check.py --run-id run_20260311_194832
-python3 skills/openmath-lean-theorem/benchmarks/utils/check.py -v
+python3 skills/openmath-lean-benchmark/utils/check.py --run-id run_20260311_194832
+python3 skills/openmath-lean-benchmark/utils/check.py -v
 ```
 
 #### Run metadata schema (`answers/{run_id}/run_metadata.json`)
@@ -73,7 +85,7 @@ python3 skills/openmath-lean-theorem/benchmarks/utils/check.py -v
   "agent_timeout": 600,
   "agent_max_budget_usd": 1.0,
   "prelude": "prelude/default.md",
-  "thinking_budget": null,
+  "diagnostics_saved": false,
   "start_timestamp": "...",
   "end_timestamp": "...",
   "total_benchmarks": 5,
@@ -81,12 +93,12 @@ python3 skills/openmath-lean-theorem/benchmarks/utils/check.py -v
   "errors": 0,
   "total_input_tokens": 0,
   "total_output_tokens": 0,
-  "total_thinking_tokens": 0,
+  "total_diagnostic_tokens": 0,
   "total_wall_time_seconds": 42.3
 }
 ```
 
-Phase 2 verification output (`skills/openmath-lean-theorem/benchmarks/results/verify_{run_id}_{timestamp}.json`) includes per-result `thinking` (full chain-of-thought), `thinking_preview` (first 500 chars), and `trace_file` (e.g. `traces/{benchmark_id}.json`) for analysis.
+Phase 2 verification output (`skills/openmath-lean-benchmark/results/verify_{run_id}_{timestamp}.json`) includes per-result token counts and `trace_file` by default. Raw diagnostic output is copied into that file only when `check.py --include-diagnostics` is used and the original solve run was created with `--save-diagnostics`.
 
 ---
 
@@ -94,15 +106,15 @@ Phase 2 verification output (`skills/openmath-lean-theorem/benchmarks/results/ve
 
 **Workflow:**
 1. Create the `.lean` file in appropriate directory
-2. Add metadata entry to `skills/openmath-lean-theorem/benchmarks/sets/benchmark_metadata.json`
-3. Validate using `python3 skills/openmath-lean-theorem/benchmarks/utils/benchmark_manager.py`
-4. Test execution with `python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py --benchmark-id <id>`
+2. Add metadata entry to `skills/openmath-lean-benchmark/sets/benchmark_metadata.json`
+3. Validate using `python3 skills/openmath-lean-benchmark/utils/benchmark_manager.py`
+4. Test execution with `python3 skills/openmath-lean-benchmark/utils/validate.py --benchmark-id <id>`
 
 **Example - Adding Easy Algebra Benchmark:**
 
 ```bash
 # Step 1: Create the LEAN file
-# File: skills/openmath-lean-theorem/benchmarks/sets/easy/algebra/associativity.lean
+# File: skills/openmath-lean-benchmark/sets/easy/algebra/associativity.lean
 ```
 
 ```lean
@@ -117,7 +129,7 @@ theorem nat_add_assoc (a b c : Nat) : (a + b) + c = a + (b + c) := by
 
 ```bash
 # Step 2: Update metadata
-# Edit: skills/openmath-lean-theorem/benchmarks/sets/benchmark_metadata.json
+# Edit: skills/openmath-lean-benchmark/sets/benchmark_metadata.json
 ```
 
 ```json
@@ -135,10 +147,10 @@ theorem nat_add_assoc (a b c : Nat) : (a + b) + c = a + (b + c) := by
 
 ```bash
 # Step 3: Validate
-python3 skills/openmath-lean-theorem/benchmarks/utils/benchmark_manager.py
+python3 skills/openmath-lean-benchmark/utils/benchmark_manager.py
 
 # Step 4: Test
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py --benchmark-id easy_algebra_002 -v
+python3 skills/openmath-lean-benchmark/utils/validate.py --benchmark-id easy_algebra_002 -v
 ```
 
 ### Task 2: Running Benchmark Tests
@@ -146,47 +158,47 @@ python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py --benchmark-id
 **Basic Execution:**
 ```bash
 # Validate that benchmark sets compile (expect failure, not error)
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py
+python3 skills/openmath-lean-benchmark/utils/validate.py
 
 # Filter by difficulty
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py --difficulty easy
+python3 skills/openmath-lean-benchmark/utils/validate.py --difficulty easy
 
 # Filter by topic
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py --topic algebra
+python3 skills/openmath-lean-benchmark/utils/validate.py --topic algebra
 
 # Specific benchmark
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py --benchmark-id easy_algebra_001
+python3 skills/openmath-lean-benchmark/utils/validate.py --benchmark-id easy_algebra_001
 
 # Verbose mode (detailed output)
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py -v
+python3 skills/openmath-lean-benchmark/utils/validate.py -v
 ```
 
 **Expected Outputs:**
 - Console: Progress updates, summary statistics
-- File: `skills/openmath-lean-theorem/benchmarks/results/results_YYYYMMDD_HHMMSS.json`
+- File: `skills/openmath-lean-benchmark/results/results_YYYYMMDD_HHMMSS.json`
 
 ### Task 3: Analyzing Results
 
 **Basic Analysis:**
 ```bash
 # View latest results
-python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py
+python3 skills/openmath-lean-benchmark/utils/evaluate_results.py
 
 # Compare multiple runs
-python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py --compare
+python3 skills/openmath-lean-benchmark/utils/evaluate_results.py --compare
 
 # Performance report
-python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py --report performance
+python3 skills/openmath-lean-benchmark/utils/evaluate_results.py --report performance
 
 # Specific result files
-python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py --pattern "results_20261103_*.json"
+python3 skills/openmath-lean-benchmark/utils/evaluate_results.py --pattern "results_20261103_*.json"
 ```
 
 ### Task 4: Validating Benchmark Integrity
 
 ```bash
 # Validate all benchmarks
-python3 skills/openmath-lean-theorem/benchmarks/utils/benchmark_manager.py
+python3 skills/openmath-lean-benchmark/utils/benchmark_manager.py
 ```
 
 **Validation Checks:**
@@ -278,7 +290,7 @@ theorem [theorem_name] [parameters] : [statement] := by
 
 ## ⚙️ Configuration
 
-### Important Configuration Variables (`skills/openmath-lean-theorem/benchmarks/utils/config.py`)
+### Important Configuration Variables (`skills/openmath-lean-benchmark/utils/config.py`)
 
 ```python
 # Executable
@@ -301,7 +313,7 @@ ANSWERS_DIR     = BENCHMARKS_ROOT / "answers"
 # Direct API provider defaults
 DEFAULT_PROVIDER       = "claude"
 DEFAULT_MODEL          = "claude-sonnet-4-6"
-DEFAULT_THINKING_BUDGET = 8000
+DEFAULT_REASONING_BUDGET = 8000
 
 # Agent-mode defaults
 DEFAULT_AGENT_TIMEOUT = 600       # seconds the agent process may run
@@ -309,7 +321,7 @@ DEFAULT_AGENT_MAX_BUDGET_USD = 1.0  # max USD per agent run (e.g. claude --max-b
 ```
 
 **When to Modify:**
-- LEAN not in PATH: Update `LEAN_EXECUTABLE` in `skills/openmath-lean-theorem/benchmarks/utils/config.py`
+- LEAN not in PATH: Update `LEAN_EXECUTABLE` in `skills/openmath-lean-benchmark/utils/config.py`
 - Timeouts too short/long: Adjust difficulty-specific timeouts or `DEFAULT_AGENT_TIMEOUT`
 - Memory constraints: Modify `MAX_MEMORY_MB`
 - Default agent duration: Modify `DEFAULT_AGENT_TIMEOUT`
@@ -326,12 +338,14 @@ DEFAULT_AGENT_MAX_BUDGET_USD = 1.0  # max USD per agent run (e.g. claude --max-b
 - Validate existing benchmarks before adding new ones
 - Check metadata schema compliance
 - Test new benchmarks individually before bulk operations
+- Keep generated artifacts local unless you have explicitly sanitized them
 
 ❌ **DON'T:**
 - Modify existing benchmark files without backing them up
 - Add benchmarks without metadata entries
 - Run benchmarks without understanding timeout limits
 - Commit results to version control (unless intentional)
+- Persist raw provider diagnostics unless you explicitly need them
 
 ### 2. **When Adding Benchmarks**
 
@@ -355,6 +369,7 @@ DEFAULT_AGENT_MAX_BUDGET_USD = 1.0  # max USD per agent run (e.g. claude --max-b
 - Use verbose mode (`-v`) for debugging
 - Monitor system resources for long-running tests
 - Review compiler output for errors
+- Use `--save-diagnostics` only for targeted local debugging
 
 ❌ **DON'T:**
 - Run all benchmarks on untested code
@@ -367,7 +382,7 @@ DEFAULT_AGENT_MAX_BUDGET_USD = 1.0  # max USD per agent run (e.g. claude --max-b
 ✅ **DO:**
 - Compare results over multiple runs for trends
 - Investigate performance outliers
-- Keep historical results for regression testing
+- Keep historical results for regression testing only if they remain sanitized and intentionally stored
 - Document unexpected behaviors
 
 ❌ **DON'T:**
@@ -391,12 +406,18 @@ DEFAULT_AGENT_MAX_BUDGET_USD = 1.0  # max USD per agent run (e.g. claude --max-b
 #### Issue: "Import errors" when running Python scripts
 **Solution:**
 1. Ensure you're in the project root directory
-2. Install dependencies: `pip3 install -r skills/openmath-lean-theorem/benchmarks/utils/requirements.txt`
+2. Install dependencies: `pip3 install -r skills/openmath-lean-benchmark/utils/requirements.txt`
 3. Use `python3` (not `python`) on macOS/Linux
+
+#### Issue: agent CLI missing or not authenticated
+**Solution:**
+1. Install the selected CLI so it is available in `PATH`
+2. Complete the CLI's local sign-in or provider configuration before running `solve.py`
+3. For direct API mode, set `ANTHROPIC_API_KEY`
 
 #### Issue: "Timeout errors" during benchmark execution
 **Solution:**
-1. Check timeout settings in `skills/openmath-lean-theorem/benchmarks/utils/config.py`
+1. Check timeout settings in `skills/openmath-lean-benchmark/utils/config.py`
 2. Increase timeout for specific difficulty level
 3. Verify benchmark doesn't have infinite loops
 4. Use `--verbose` to see where it hangs
@@ -444,30 +465,32 @@ DEFAULT_AGENT_MAX_BUDGET_USD = 1.0  # max USD per agent run (e.g. claude --max-b
 
 ```bash
 # Setup
-pip3 install -r skills/openmath-lean-theorem/benchmarks/utils/requirements.txt
+pip3 install -r skills/openmath-lean-benchmark/utils/requirements.txt
 
 # Validation
-python3 skills/openmath-lean-theorem/benchmarks/utils/benchmark_manager.py
+python3 skills/openmath-lean-benchmark/utils/benchmark_manager.py
 
 # Solve: generate proofs (default agent + prelude)
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent claude-code
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent claude-code --difficulty easy --agent-timeout 300
-python3 skills/openmath-lean-theorem/benchmarks/utils/solve.py --agent aider --benchmark-id easy_algebra_001 -v
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent claude-code
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent claude-code --difficulty easy --agent-timeout 300
+python3 skills/openmath-lean-benchmark/utils/solve.py --agent aider --benchmark-id easy_algebra_001 -v
+python3 skills/openmath-lean-benchmark/utils/solve.py --save-diagnostics --benchmark-id easy_algebra_001
 
 # Check: verify generated proofs with LEAN compiler
-python3 skills/openmath-lean-theorem/benchmarks/utils/check.py
-python3 skills/openmath-lean-theorem/benchmarks/utils/check.py --run-id run_20260311_194832 -v
+python3 skills/openmath-lean-benchmark/utils/check.py
+python3 skills/openmath-lean-benchmark/utils/check.py --run-id run_20260311_194832 -v
+python3 skills/openmath-lean-benchmark/utils/check.py --run-id run_20260311_194832 --include-diagnostics
 
 # Validate: verify benchmark sets compile (expect failure, not error)
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py                    # All
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py --difficulty easy  # By difficulty
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py --topic algebra    # By topic
-python3 skills/openmath-lean-theorem/benchmarks/utils/validate.py -v                 # Verbose
+python3 skills/openmath-lean-benchmark/utils/validate.py                    # All
+python3 skills/openmath-lean-benchmark/utils/validate.py --difficulty easy  # By difficulty
+python3 skills/openmath-lean-benchmark/utils/validate.py --topic algebra    # By topic
+python3 skills/openmath-lean-benchmark/utils/validate.py -v                 # Verbose
 
 # Analyze results
-python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py                       # Latest summary
-python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py --compare             # Compare runs
-python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py --report performance  # Performance details
+python3 skills/openmath-lean-benchmark/utils/evaluate_results.py                       # Latest summary
+python3 skills/openmath-lean-benchmark/utils/evaluate_results.py --compare             # Compare runs
+python3 skills/openmath-lean-benchmark/utils/evaluate_results.py --report performance  # Performance details
 ```
 
 ---
@@ -476,9 +499,9 @@ python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py --repo
 
 ### File Modification Guidelines
 
-1. **skills/openmath-lean-theorem/benchmarks/sets/** - Add new benchmarks, update metadata
-2. **skills/openmath-lean-theorem/benchmarks/results/** - Read-only (generated by scripts)
-3. **skills/openmath-lean-theorem/benchmarks/utils/** - Modify config.py for settings, avoid changing core logic unless necessary
+1. **skills/openmath-lean-benchmark/sets/** - Add new benchmarks, update metadata
+2. **skills/openmath-lean-benchmark/results/** - Read-only generated outputs; gitignored by default
+3. **skills/openmath-lean-benchmark/utils/** - Modify config.py for settings, avoid changing core logic unless necessary
 4. **README files** - Update when adding new features or workflows
 
 ### Integration Points
@@ -491,7 +514,7 @@ python3 skills/openmath-lean-theorem/benchmarks/utils/evaluate_results.py --repo
 
 Agents can extend this system by:
 - Adding new topics (create subdirectories, update metadata)
-- Adding new agent tool backends in `skills/openmath-lean-theorem/benchmarks/utils/providers/agents/` (e.g. new module + AGENT_REGISTRY)
+- Adding new agent tool backends in `skills/openmath-lean-benchmark/utils/providers/agents/` (e.g. new module + AGENT_REGISTRY)
 - Implementing custom result analyzers
 - Creating visualization tools for results
 - Building automated benchmark generators
@@ -513,7 +536,7 @@ Before completing benchmark work, verify:
 - [ ] All new benchmarks have metadata entries
 - [ ] Benchmark IDs are unique
 - [ ] LEAN files compile without syntax errors
-- [ ] Validation passes (`python3 skills/openmath-lean-theorem/benchmarks/utils/benchmark_manager.py`)
+- [ ] Validation passes (`python3 skills/openmath-lean-benchmark/utils/benchmark_manager.py`)
 - [ ] Test runs complete successfully
 - [ ] Results are properly formatted JSON
-- [ ] No sensitive information in results files
+- [ ] No raw provider diagnostics in stored files unless explicitly intended

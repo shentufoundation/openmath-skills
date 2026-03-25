@@ -19,10 +19,17 @@ python3 scripts/check_theorem_env.py <workspace>
 This checks the local Lean toolchain, validates that required skills such as `lean-proof` and `mathlib-build` are installed, and runs the initial build loop. If required skills are missing, use:
 
 ```bash
-python3 scripts/check_theorem_env.py <workspace> --auto-install-skills
+npx leanprover-skills install lean-proof
+npx leanprover-skills install mathlib-build
 ```
 
-The auto-install path clones `https://github.com/leanprover/skills.git` and copies the missing skill directories into the active skills directory.
+Or, if you want preflight to install the missing skills for you, use an explicit target directory:
+
+```bash
+python3 scripts/check_theorem_env.py <workspace> --auto-install-skills --install-dir .codex/skills
+```
+
+The auto-install path clones `https://github.com/leanprover/skills.git` and copies the missing skill directories into the selected skills directory.
 
 ## What To Read First
 

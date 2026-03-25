@@ -5,7 +5,7 @@ This directory contains LEAN4 benchmark questions organized by difficulty and to
 ## Directory Structure
 
 ```
-benchmark_sets/
+sets/
 ├── easy/
 │   ├── algebra/
 │   ├── combinatorics/

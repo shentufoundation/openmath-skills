@@ -8,6 +8,8 @@ Use --prompt TEXT for direct API (single LLM call). Scope: --benchmark-id, --dif
 
 import argparse
 import json
+import os
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -18,15 +20,16 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import (
     ANSWERS_DIR,
     DEFAULT_MODEL,
-    DEFAULT_THINKING_BUDGET,
+    DEFAULT_REASONING_BUDGET,
     DEFAULT_AGENT_TIMEOUT,
     DEFAULT_AGENT_MAX_BUDGET_USD,
 )
 from benchmark_manager import BenchmarkManager
 from console import console, print_agent_line, print_section
 from providers import ClaudeProvider, AgentProvider, SUPPORTED_AGENTS
+from providers.agents import get_agent_runner
 
-DEFAULT_PRELUDE = Path("skills/openmath-lean-theorem/benchmarks/prelude/default.md")
+DEFAULT_PRELUDE = Path("skills/openmath-lean-benchmark/prelude/default.md")
 
 
 def _get_provider(
@@ -43,7 +46,7 @@ def _get_provider(
     if prompt is not None:
         return ClaudeProvider(
             model=DEFAULT_MODEL,
-            thinking_budget=DEFAULT_THINKING_BUDGET,
+            reasoning_budget=DEFAULT_REASONING_BUDGET,
         )
     return AgentProvider(
         agent_tool=agent,
@@ -57,6 +60,38 @@ def _get_provider(
 
 def _run_id() -> str:
     return "run_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def _check_runtime_requirements(args: argparse.Namespace) -> None:
+    """Fail fast when the selected provider runtime is unavailable."""
+    if args.prompt:
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            return
+        console.print(
+            "[om.failure]Error:[/om.failure] `--prompt` mode requires `ANTHROPIC_API_KEY` in the environment.",
+            markup=True,
+        )
+        sys.exit(2)
+
+    runner = get_agent_runner(args.agent)
+    command = runner(
+        "health check",
+        "Main.lean",
+        stream_output=False,
+        max_budget_usd=args.agent_max_budget_usd,
+    )
+    executable = command[0]
+    if shutil.which(executable):
+        return
+
+    console.print(
+        f"[om.failure]Error:[/om.failure] agent CLI not found in PATH: [bold]{executable}[/bold]",
+        markup=True,
+    )
+    console.print(
+        "  Install the selected CLI and ensure it is already authenticated locally before running benchmarks."
+    )
+    sys.exit(2)
 
 
 def main():
@@ -94,14 +129,20 @@ def main():
         metavar="DOLLARS",
         help=f"Max USD spend per agent run (e.g. claude --max-budget-usd). Default: {DEFAULT_AGENT_MAX_BUDGET_USD}",
     )
+    parser.add_argument(
+        "--save-diagnostics",
+        action="store_true",
+        help="Persist provider/agent diagnostic output in traces. Disabled by default because it may contain sensitive reasoning or CLI transcripts.",
+    )
     parser.add_argument("--benchmark-id", help="Single benchmark by ID")
     parser.add_argument("--difficulty", choices=["easy", "medium", "hard"], help="All in difficulty")
     parser.add_argument("--topic", help="All in topic (can combine with --difficulty)")
     parser.add_argument("-v", "--verbose", action="store_true",
-        help="Stream agent output live (thinking, tool calls, results)",
+        help="Stream agent output live (diagnostics, tool calls, results)",
     )
 
     args = parser.parse_args()
+    _check_runtime_requirements(args)
 
     manager = BenchmarkManager()
 
@@ -142,13 +183,14 @@ def main():
         "agent_max_budget_usd": None if args.prompt else max_budget,
         "prelude": None if args.prompt else prelude_str,
         "prompt_used": bool(args.prompt),
+        "diagnostics_saved": args.save_diagnostics,
         "start_timestamp": datetime.now().isoformat(),
         "total_benchmarks": len(benchmarks),
         "completed": 0,
         "errors": 0,
         "total_input_tokens": 0,
         "total_output_tokens": 0,
-        "total_thinking_tokens": 0,
+        "total_diagnostic_tokens": 0,
         "total_wall_time_seconds": 0.0,
     }
     run_metadata_path = run_dir / "run_metadata.json"
@@ -216,10 +258,13 @@ def main():
             "wall_time_seconds": response.wall_time_seconds,
             "input_tokens": response.input_tokens,
             "output_tokens": response.output_tokens,
-            "thinking_tokens": response.thinking_tokens,
-            "thinking": response.thinking,
+            "diagnostic_tokens": response.diagnostic_tokens,
+            "diagnostic_output_saved": False,
             "answer_file": str(answer_rel),
         }
+        if args.save_diagnostics and response.diagnostic_output:
+            trace["diagnostic_output"] = response.diagnostic_output
+            trace["diagnostic_output_saved"] = True
         trace_path = traces_dir / f"{benchmark.benchmark_id}.json"
         with open(trace_path, "w") as f:
             json.dump(trace, f, indent=2)
@@ -227,7 +272,7 @@ def main():
         run_metadata["completed"] += 1
         run_metadata["total_input_tokens"] += response.input_tokens
         run_metadata["total_output_tokens"] += response.output_tokens
-        run_metadata["total_thinking_tokens"] += response.thinking_tokens
+        run_metadata["total_diagnostic_tokens"] += response.diagnostic_tokens
         run_metadata["total_wall_time_seconds"] += response.wall_time_seconds
 
         console.print(
