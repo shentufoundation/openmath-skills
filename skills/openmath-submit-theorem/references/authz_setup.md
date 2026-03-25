@@ -2,6 +2,8 @@
 
 Use this when `openmath-submit-theorem` is configured for the default authz-based flow.
 
+Before writing `openmath-env.json`, creating or recovering a local key, or installing `shentud`, get explicit user approval.
+
 ## Required Local Config
 
 Create a local config file from the example. See `references/init-setup.md` for the full flow. Auto-discovery only checks `./.openmath-skills/openmath-env.json` and `~/.openmath-skills/openmath-env.json`.
@@ -33,16 +35,24 @@ Recommended local key flow:
 shentud keys show agent-prover -a --keyring-backend os
 ```
 
-If the key does not exist, create it:
+If the key does not exist, stop and ask the user whether to create a new local key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+
+Create a new key only if the user approves:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
 ```
 
+Recover an existing key only if the user approves:
+
+```bash
+shentud keys add agent-prover --recover --keyring-backend os
+```
+
 Then save:
 
 - `agent_key_name`: `agent-prover`
-- `agent_address`: the detected or generated bech32 address
+- `agent_address`: the detected or resulting bech32 address
 
 Runtime chain settings are not stored in `openmath-env.json`:
 

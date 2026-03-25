@@ -175,6 +175,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Ensure a working shentud binary is installed and reachable."
     )
     parser.add_argument(
+        "--install",
+        action="store_true",
+        help="Download and install shentud if it is missing or broken. Without this flag, the script only reports status.",
+    )
+    parser.add_argument(
         "--install-dir",
         default=str(DEFAULT_INSTALL_DIR),
         help=f"Directory to install shentud into (default: {DEFAULT_INSTALL_DIR})",
@@ -185,9 +190,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Download and reinstall even if a working shentud binary already exists.",
     )
     parser.add_argument(
+        "--persist-path",
+        action="store_true",
+        help="Append the install directory to the active shell rc file after a successful install.",
+    )
+    parser.add_argument(
         "--no-persist-path",
         action="store_true",
-        help="Do not append the install directory to the shell rc file.",
+        help="Deprecated: path persistence is disabled by default unless --persist-path is passed.",
     )
     parser.add_argument(
         "--check-only",
@@ -208,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv or sys.argv[1:])
     install_dir = Path(args.install_dir).expanduser()
     expected_binary = install_dir / "shentud"
+    install_requested = args.install or args.force_download
 
     current_binary, version = working_binary(install_dir)
     if current_binary is not None and not args.force_download:
@@ -223,7 +234,10 @@ def main(argv: list[str] | None = None) -> int:
         print("Discovery details:")
         print(version)
 
-    if args.check_only:
+    if args.check_only or not install_requested:
+        if not args.check_only and not install_requested:
+            print("No installation requested. Re-run with `--install` to download and write a shentud binary.")
+            print("Pass `--persist-path` only if you explicitly want to append the install directory to your shell rc file.")
         return 1
 
     try:
@@ -246,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
     print("Asset:", asset.get("name", "unknown"))
     print("Version:", version_message)
 
-    if args.no_persist_path:
+    if args.no_persist_path or not args.persist_path:
         print(f"Add this directory to PATH if needed: {install_dir}")
     else:
         rc_path = append_path_export(install_dir)

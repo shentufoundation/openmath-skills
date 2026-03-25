@@ -246,7 +246,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print("--- CLI ---")
     if not check_shentud():
-        print("\nInstall shentud: python3 scripts/ensure_shentud.py")
+        print("\nInspect shentud availability first: python3 scripts/ensure_shentud.py --check-only")
+        print("Only with explicit user approval, install it: python3 scripts/ensure_shentud.py --install [--persist-path]")
         return 1
 
     print("\n--- Local Key ---")

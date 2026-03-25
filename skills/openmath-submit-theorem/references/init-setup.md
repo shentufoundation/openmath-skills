@@ -17,6 +17,8 @@ Default local agent key name: `agent-prover`
 
 This is a hard gate for authz submission. Until setup is complete and `python3 scripts/check_authz_setup.py --config .openmath-skills/openmath-env.json` returns `Status: ready`, do not generate stage 1 or stage 2 authz submission commands.
 
+Before any step that writes `openmath-env.json`, creates or recovers a local `shentud` key, downloads `shentud`, or appends to a shell rc file, get explicit user approval.
+
 ## Setup Flow
 
 ```text
@@ -116,7 +118,7 @@ shentud keys show agent-prover -a --keyring-backend os
 
 ### If the key exists
 
-Do this automatically:
+Resolve this without asking for alternate key names first:
 
 1. Save `agent_key_name` as `agent-prover`
 2. Save the detected bech32 address as `agent_address`
@@ -124,17 +126,25 @@ Do this automatically:
 
 ### If the key does not exist
 
-Create it immediately:
+Stop and ask the user whether to create a new local key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+
+Create a new key only if the user approves:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
+```
+
+Recover an existing key only if the user approves:
+
+```bash
+shentud keys add agent-prover --recover --keyring-backend os
 ```
 
 Then:
 
 1. Tell the user to securely save any mnemonic or recovery material shown by `shentud`
 2. Save `agent_key_name` as `agent-prover`
-3. Save the generated bech32 address as `agent_address`
+3. Save the resulting bech32 address as `agent_address`
 4. Continue to website authorization
 
 Only ask for a different key name or different `agent_address` if the user explicitly wants to override the default `agent-prover` flow.
@@ -195,16 +205,24 @@ If it exists, save:
 - `agent_key_name`: `agent-prover`
 - `agent_address`: the detected address
 
-If it does not exist, create it:
+If it does not exist, stop and ask the user whether to create a new key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+
+Create a new key only if the user approves:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
 ```
 
+Recover an existing key only if the user approves:
+
+```bash
+shentud keys add agent-prover --recover --keyring-backend os
+```
+
 Then save:
 
 - `agent_key_name`: `agent-prover`
-- `agent_address`: the generated address
+- `agent_address`: the resulting address
 
 Only ask the user for a different key name or different `agent_address` if they explicitly want to override the default.
 
@@ -253,6 +271,6 @@ Expected behavior after setup:
 ## Notes
 
 - Prefer asking all independent questions in one call; only split when local key creation introduces a dependency
-- Do not ask the user to type `agent_key_name` or `agent_address` if the default local key flow can resolve them automatically
+- Do not ask the user to type `agent_key_name` or `agent_address` if the default local key flow can resolve them automatically, but do ask before creating or recovering any local key
 - User-facing language naming is `rocq`
 - Reward querying can stay read-only, but authz submission must respect this gate

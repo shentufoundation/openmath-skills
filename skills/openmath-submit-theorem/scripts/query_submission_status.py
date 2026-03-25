@@ -36,7 +36,7 @@ def run_shentud_query(args: list[str]) -> dict:
         result = subprocess.run(command, capture_output=True, text=True)
     except (FileNotFoundError, OSError) as exc:
         raise RuntimeError(
-            f"shentud is unavailable ({exc}). Run `python3 scripts/ensure_shentud.py` first."
+            f"shentud is unavailable ({exc}). Run `python3 scripts/ensure_shentud.py --check-only` first, and install with `--install` only if the user approves."
         ) from exc
     if result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or "shentud query failed"
