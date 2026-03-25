@@ -55,6 +55,6 @@ This skill does not run benchmark providers, prompt-based agent comparisons, or 
 
 Load when needed (one level from this file):
 
-- **[references/preflight.md](references/preflight.md)** — Preflight command and Lean/Rocq checks.
+- **[references/preflight.md](references/preflight.md)** — Lean preflight command, skill checks, and initial build loop.
 - **[references/proof_playbook.md](references/proof_playbook.md)** — Step-by-step workflow for proving a downloaded Lean theorem locally.
 - **[references/languages.md](references/languages.md)** — Lean version and standard library.

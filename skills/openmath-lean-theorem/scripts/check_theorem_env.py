@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Post-download preflight checks for OpenMath Lean and Rocq workspaces."""
+"""Post-download preflight checks for OpenMath Lean workspaces."""
 
 from __future__ import annotations
 
@@ -32,14 +32,6 @@ DEFAULT_LEAN_SKILL_REPO_URL = os.environ.get(
     "https://github.com/leanprover/skills.git",
 )
 DEFAULT_LEAN_INSTALL_DIR = os.environ.get("OPENMATH_LEAN_SKILL_INSTALL_DIR", "").strip()
-DEFAULT_ROCQ_REQUIRED_SKILLS = tuple(
-    item.strip()
-    for item in os.environ.get("OPENMATH_ROCQ_REQUIRED_SKILLS", "").split(",")
-    if item.strip()
-)
-DEFAULT_ROCQ_INSTALL_CMD = os.environ.get("OPENMATH_ROCQ_SKILL_INSTALL_CMD", "").strip()
-
-
 class PreflightError(RuntimeError):
     """Raised when the workspace preflight cannot continue."""
 
@@ -58,7 +50,7 @@ def print_status(kind: str, label: str, detail: str | None = None) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Check OpenMath Lean or Rocq workspace toolchains, skills, and build readiness."
+        description="Check OpenMath Lean workspace toolchains, skills, and build readiness."
     )
     parser.add_argument(
         "workspace",
@@ -122,16 +114,22 @@ def detect_language(workspace: Path) -> WorkspaceInfo:
     if theorem_json.is_file():
         payload = read_json(theorem_json)
         language = str(payload.get("language", "")).strip().lower()
-        if language in {"lean", "rocq"}:
+        if language == "lean":
             return WorkspaceInfo(workspace, language, theorem_json)
+        if language == "rocq":
+            raise PreflightError(
+                "detected a Rocq theorem workspace; use the openmath-rocq-theorem skill instead"
+            )
 
     if (workspace / "lean-toolchain").is_file() or (workspace / "lakefile.lean").is_file():
         return WorkspaceInfo(workspace, "lean", theorem_json if theorem_json.is_file() else None)
 
     if (workspace / "_CoqProject").is_file() or any(workspace.glob("*.v")):
-        return WorkspaceInfo(workspace, "rocq", theorem_json if theorem_json.is_file() else None)
+        raise PreflightError(
+            "detected a Rocq/Coq workspace; use the openmath-rocq-theorem skill instead"
+        )
 
-    raise PreflightError(f"could not detect theorem language from workspace: {workspace}")
+    raise PreflightError(f"could not detect a Lean theorem workspace from: {workspace}")
 
 
 def extract_expected_lean_version(workspace: Path) -> str | None:
@@ -314,40 +312,6 @@ def maybe_install_lean_skills(
     return True
 
 
-def maybe_install_skills(
-    missing_skills: list[str],
-    install_command: str,
-    auto_install: bool,
-) -> bool:
-    if not missing_skills:
-        return True
-
-    if not install_command:
-        print_status("warn", "skill installation", "no standard install command is defined")
-        return False
-
-    full_command = [*shlex.split(install_command), *missing_skills]
-    print("Install command:")
-    print(" ".join(shlex.quote(part) for part in full_command))
-    if not auto_install:
-        return False
-
-    runner = shutil.which(full_command[0])
-    if not runner:
-        print_status("missing", "skill installer", f"command not found: {full_command[0]}")
-        return False
-
-    print_status("info", "auto-installing missing skills", ", ".join(missing_skills))
-    result = run_command(full_command, cwd=REPO_ROOT)
-    if result.returncode != 0:
-        detail = result.stderr.strip() or result.stdout.strip() or "install failed"
-        print_status("missing", "skill installation", detail)
-        return False
-
-    print_status("ok", "skill installation", "completed")
-    return True
-
-
 def lean_needs_mathlib(workspace: Path) -> bool:
     lakefile = workspace / "lakefile.lean"
     if lakefile.is_file() and "require mathlib" in lakefile.read_text(encoding="utf-8"):
@@ -357,23 +321,6 @@ def lean_needs_mathlib(workspace: Path) -> bool:
         if "import Mathlib" in lean_file.read_text(encoding="utf-8"):
             return True
     return False
-
-
-def find_rocq_files(workspace: Path) -> list[Path]:
-    return sorted(path for path in workspace.glob("*.v") if path.is_file())
-
-
-def parse_coqproject_flags(path: Path) -> list[str]:
-    if not path.is_file():
-        return []
-
-    flags: list[str] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or not stripped.startswith("-"):
-            continue
-        flags.extend(shlex.split(stripped))
-    return flags
 
 
 def check_lean_toolchain(workspace: Path) -> bool:
@@ -445,57 +392,6 @@ def run_lean_build(workspace: Path) -> bool:
     return True
 
 
-def check_rocq_toolchain() -> bool:
-    ready = True
-    coqc_bin = shutil.which("coqc")
-    rocq_bin = shutil.which("rocq")
-
-    if coqc_bin:
-        print_status("ok", "coqc command", coqc_bin)
-        version = run_command(["coqc", "--version"])
-        if version.returncode == 0:
-            first_line = version.stdout.strip().splitlines()[0]
-            print_status("ok", "coqc version", first_line)
-        else:
-            print_status("missing", "coqc --version", version.stderr.strip() or "failed")
-            ready = False
-    else:
-        print_status("missing", "coqc command", "required for Rocq/Coq preflight")
-        ready = False
-
-    if rocq_bin:
-        print_status("ok", "rocq command", rocq_bin)
-    else:
-        print_status("warn", "rocq command", "not found; using coqc compatibility mode")
-
-    return ready
-
-
-def run_rocq_build(workspace: Path) -> bool:
-    theorem_files = find_rocq_files(workspace)
-    if not theorem_files:
-        print_status("missing", "rocq theorem file", "no .v file found in workspace root")
-        return False
-
-    flags = parse_coqproject_flags(workspace / "_CoqProject")
-    if flags:
-        print_status("ok", "_CoqProject flags", " ".join(flags))
-    else:
-        print_status("warn", "_CoqProject flags", "no compiler flags found; compiling file directly")
-
-    ready = True
-    for theorem_file in theorem_files:
-        command = ["coqc", *flags, theorem_file.name]
-        result = run_command(command, cwd=workspace)
-        if result.returncode != 0:
-            detail = result.stderr.strip() or result.stdout.strip() or "coqc failed"
-            print_status("missing", f"coqc {theorem_file.name}", detail)
-            ready = False
-        else:
-            print_status("ok", f"coqc {theorem_file.name}")
-    return ready
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv or sys.argv[1:])
@@ -517,51 +413,28 @@ def main(argv: list[str] | None = None) -> int:
     print("Toolchain checks")
 
     ready = True
-    if info.language == "lean":
-        ready = check_lean_toolchain(info.root) and ready
-    else:
-        ready = check_rocq_toolchain() and ready
+    ready = check_lean_toolchain(info.root) and ready
 
     print()
     print("Skill checks")
 
-    if info.language == "lean":
-        missing_required, _ = skills_status(
-            DEFAULT_LEAN_REQUIRED_SKILLS,
-            DEFAULT_LEAN_OPTIONAL_SKILLS,
-            search_dirs,
-        )
-        installed = maybe_install_lean_skills(
-            missing_required,
-            search_dirs,
-            args.auto_install_skills,
-            args.install_dir,
-        )
-        if missing_required and not installed:
+    missing_required, _ = skills_status(
+        DEFAULT_LEAN_REQUIRED_SKILLS,
+        DEFAULT_LEAN_OPTIONAL_SKILLS,
+        search_dirs,
+    )
+    installed = maybe_install_lean_skills(
+        missing_required,
+        search_dirs,
+        args.auto_install_skills,
+        args.install_dir,
+    )
+    if missing_required and not installed:
+        ready = False
+    elif missing_required and installed:
+        refreshed_missing, _ = skills_status(DEFAULT_LEAN_REQUIRED_SKILLS, (), search_dirs)
+        if refreshed_missing:
             ready = False
-        elif missing_required and installed:
-            refreshed_missing, _ = skills_status(DEFAULT_LEAN_REQUIRED_SKILLS, (), search_dirs)
-            if refreshed_missing:
-                ready = False
-    else:
-        if DEFAULT_ROCQ_REQUIRED_SKILLS:
-            missing_required, _ = skills_status(DEFAULT_ROCQ_REQUIRED_SKILLS, (), search_dirs)
-            installed = maybe_install_skills(
-                missing_required,
-                DEFAULT_ROCQ_INSTALL_CMD,
-                args.auto_install_skills,
-            )
-            if missing_required and not installed:
-                ready = False
-        else:
-            print_status(
-                "warn",
-                "rocq skill bundle",
-                "no standard Rocq-specific skill bundle is defined; preflight continues with compiler checks only",
-            )
-            if DEFAULT_ROCQ_INSTALL_CMD:
-                print("Optional Rocq install command:")
-                print(DEFAULT_ROCQ_INSTALL_CMD)
 
     if args.skip_build:
         print()
@@ -570,10 +443,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print()
         print("Build checks")
-        if info.language == "lean":
-            ready = run_lean_build(info.root) and ready
-        else:
-            ready = run_rocq_build(info.root) and ready
+        ready = run_lean_build(info.root) and ready
 
     print()
     if ready:

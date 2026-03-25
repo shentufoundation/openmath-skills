@@ -43,6 +43,23 @@ def render_readme(theorem: TheoremRecord, project_dir: Path, entrypoint: str) ->
         openmath_site_url = resolve_openmath_site_url()
     except OpenMathEnvConfigError as exc:
         raise RuntimeError(str(exc)) from exc
+    language = theorem.language.lower()
+    if language == "lean":
+        next_steps = [
+            "1. Use the `openmath-lean-theorem` skill and run `python3 scripts/check_theorem_env.py <workspace>` before proving anything.",
+            "2. Read the generated theorem source and confirm imports / dependencies.",
+            "3. Use the `lean-proof` skill if you need help formalizing or debugging the local proof.",
+            "4. Replace placeholders or incomplete proof bodies with your actual proof.",
+            "5. After verification, use `openmath-submit-theorem` to generate submission commands.",
+        ]
+    else:
+        next_steps = [
+            "1. Use the `openmath-rocq-theorem` skill before proving anything.",
+            "2. Read the generated theorem source and confirm `_CoqProject`, dune, and opam dependencies.",
+            "3. Verify the local toolchain with `rocq --version`, `dune --version`, and `opam list rocq-prover`.",
+            "4. Replace placeholders or incomplete proof bodies with your actual proof.",
+            "5. After verification, use `openmath-submit-theorem` to generate submission commands.",
+        ]
     lines = [
         f"# {theorem.title}",
         "",
@@ -61,11 +78,7 @@ def render_readme(theorem: TheoremRecord, project_dir: Path, entrypoint: str) ->
         "",
         "## Next Steps",
         "",
-        "1. Run `python3 scripts/check_theorem_env.py <workspace>` before proving anything.",
-        "2. Read the generated theorem source and confirm imports / dependencies.",
-        "3. Use the `lean-proof` skill if you need help formalizing or debugging the local proof.",
-        "4. Replace placeholders or incomplete proof bodies with your actual proof.",
-        "5. After verification, use `openmath-submit-theorem` to generate submission commands.",
+        *next_steps,
         "",
         "## Notes",
         "",
