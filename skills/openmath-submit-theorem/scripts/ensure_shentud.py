@@ -56,13 +56,13 @@ def binary_check(path: Path) -> tuple[bool, str]:
 def candidate_paths(install_dir: Path) -> list[Path]:
     candidates: list[Path] = []
 
-    env_bin = os.environ.get("OPENMATH_SHENTUD_BIN")
-    if env_bin:
-        candidates.append(Path(env_bin).expanduser())
-
     which_path = shutil.which("shentud")
     if which_path:
         candidates.append(Path(which_path))
+
+    env_bin = os.environ.get("OPENMATH_SHENTUD_BIN")
+    if env_bin:
+        candidates.append(Path(env_bin).expanduser())
 
     candidates.append(install_dir / "shentud")
 

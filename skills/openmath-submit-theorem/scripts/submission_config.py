@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -27,6 +28,13 @@ def project_env_config_path() -> Path:
 
 def explicit_env_config_path() -> Path | None:
     explicit = os.environ.get("OPENMATH_ENV_CONFIG")
+    if not explicit:
+        return None
+    return Path(explicit).expanduser()
+
+
+def explicit_shentud_bin() -> Path | None:
+    explicit = os.environ.get("OPENMATH_SHENTUD_BIN")
     if not explicit:
         return None
     return Path(explicit).expanduser()
@@ -90,6 +98,47 @@ def setup_doc_path() -> Path:
 def candidate_env_config_paths() -> tuple[Path, Path]:
     """Return the two auto-discovery locations for openmath-env.json."""
     return (project_env_config_path(), GLOBAL_ENV_CONFIG_PATH)
+
+
+def shentud_binary_candidates() -> tuple[str, ...]:
+    """Return shentud resolution order: PATH first, explicit override second."""
+    candidates = ["shentud"]
+    explicit = explicit_shentud_bin()
+    if explicit is not None:
+        explicit_str = str(explicit)
+        if explicit_str != "shentud":
+            candidates.append(explicit_str)
+    return tuple(candidates)
+
+
+def detect_working_shentud() -> tuple[str, str]:
+    """Return the first working shentud binary and its version output."""
+    errors: list[str] = []
+    for candidate in shentud_binary_candidates():
+        try:
+            result = subprocess.run(
+                [candidate, "version"],
+                capture_output=True,
+                text=True,
+            )
+        except (FileNotFoundError, OSError) as exc:
+            errors.append(f"{candidate}: {exc}")
+            continue
+
+        if result.returncode == 0:
+            version = result.stdout.strip() or result.stderr.strip() or "unknown version"
+            return candidate, version
+
+        message = result.stderr.strip() or result.stdout.strip() or "unknown error"
+        errors.append(f"{candidate}: {message}")
+
+    detail = "; ".join(errors) if errors else "no candidates checked"
+    raise RuntimeError(
+        "shentud is unavailable. First try plain `shentud` from PATH. "
+        "If that fails, set `OPENMATH_SHENTUD_BIN` to a trusted binary path or run "
+        "`python3 scripts/ensure_shentud.py --check-only`.\n"
+        f"Tried: {detail}"
+    )
 
 
 def find_env_config() -> Path | None:

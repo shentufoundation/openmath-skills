@@ -1,20 +1,27 @@
 ---
 name: openmath-submit-theorem
-description: Submits proofs or theorem solutions to the OpenMath platform. Use when the user wants to commit a proof hash or reveal a Lean/Rocq proof for a specific OpenMath theorem ID on the Shentu network.
-version: v1.0.4
+description: Creates theorems from local Lean question files or submits proofs to the OpenMath platform. Use when the user wants to create a theorem, commit a proof hash, or reveal a Lean/Rocq proof on the Shentu network.
+version: v1.0.6
 requirements:
   commands:
     - python3
     - shentud
   environment_variables:
+    - HOME
     - OPENMATH_ENV_CONFIG
+    - OPENMATH_INNER_TX_FEES
+    - OPENMATH_INNER_TX_GAS
     - OPENMATH_SHENTUD_BIN
+    - OPENMATH_SUBMISSION_MODE
+    - PATH
+    - SHELL
     - SHENTU_CHAIN_ID
     - SHENTU_NODE_URL
 side_effects:
   - Reads shared openmath-env.json from --config, OPENMATH_ENV_CONFIG, or the standard project/user config locations
   - Queries and broadcasts to a remote Shentu RPC endpoint; defaults to https://rpc.shentu.org:443 unless SHENTU_NODE_URL overrides it
   - Uses the local OS keyring through shentud --keyring-backend os for key lookups and authz-exec signing
+  - Reads PATH, SHELL, and optional OPENMATH_SHENTUD_BIN to discover shentud; may suggest a temporary PATH export and can append to a shell rc file only after explicit user approval
   - May write or update openmath-env.json after explicit user approval
   - May create or recover a local shentud key only after explicit user approval
   - May download and install shentud only when ensure_shentud.py is run with --install; shell rc updates require --persist-path
@@ -68,7 +75,9 @@ This gate is mandatory for scripts that advance the submission flow. `generate_s
 - **Authz**: Default flow uses `shentud tx authz exec` with `--fee-granter <prover-address>`. For direct signer use `--mode direct` on `generate_submission.py`.
 - **Key material**: Never auto-create or auto-recover a local `shentud` key. If `shentud keys add` is needed, ask the user first whether they want to create a new key or recover an existing one, and warn that mnemonics or recovery material may be shown.
 - **Installer side effects**: `ensure_shentud.py` only installs when `--install` is passed. PATH persistence is off by default and requires `--persist-path`.
-- **Binary override**: Set `OPENMATH_SHENTUD_BIN` only if you need to point the skill at a specific trusted `shentud` binary outside the default `PATH` lookup.
+- **Binary resolution**: Check the plain `shentud` command first. If `shentud` already works from `PATH`, do not force a separate binary path. Set `OPENMATH_SHENTUD_BIN` only as a fallback when the default `shentud` lookup is missing or broken and you need a specific trusted binary.
+- **Advanced env vars**: `OPENMATH_SUBMISSION_MODE` changes the default `generate_submission.py --mode` (`authz` by default). `OPENMATH_INNER_TX_FEES` and `OPENMATH_INNER_TX_GAS` override the generated inner `--generate-only` tx fees/gas in authz mode.
+- **Local shell env**: `PATH` affects local `python3` / `shentud` discovery, `SHELL` determines which rc file `ensure_shentud.py --persist-path` updates when the user explicitly approves that step, and references may use `$HOME/bin` when showing non-persistent local install examples.
 - **Block wait**: After each broadcast wait ~5–10 s before querying.
 
 ## References

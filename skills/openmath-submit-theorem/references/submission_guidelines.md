@@ -20,7 +20,7 @@ shentud keys list --keyring-backend os
 ```
 
 If `shentud` is missing or the keyring is not configured, stop here and install/configure the Shentu environment first. Do not start Stage 1 until these checks pass.
-If `command -v shentud` fails, the default path is broken, or `shentud version` cannot run, use the bundled installer:
+First check whether plain `shentud` already works. If `command -v shentud` fails, the default path is broken, or `shentud version` cannot run, then decide whether to use an explicit trusted binary path or the bundled installer:
 
 ```bash
 python3 scripts/ensure_shentud.py --check-only
@@ -169,6 +169,12 @@ Runtime chain settings are not stored in `openmath-env.json`:
 - `SHENTU_CHAIN_ID` (default: `shentu-2.2`)
 - `SHENTU_NODE_URL` (default: `https://rpc.shentu.org:443`)
 
+Advanced script overrides:
+
+- `OPENMATH_SUBMISSION_MODE` (default: `authz`)
+- `OPENMATH_INNER_TX_FEES` (default: `5000uctk`)
+- `OPENMATH_INNER_TX_GAS` (default: `200000`)
+
 If the config is missing from both locations, or if it exists but is missing `prover_address`, `agent_address`, or `agent_key_name`, stop and run `references/init-setup.md`, then validate:
 
 ```bash
@@ -212,6 +218,7 @@ Before generating or broadcasting any submission command, confirm all 6 items be
    shentud q bank balance --denom uctk --address <FEE_GRANTER_ADDRESS> --node <shentu_node_url>
    ```
    Use `SHENTU_NODE_URL` or the built-in default `https://rpc.shentu.org:443`. Make sure the balance covers the proof deposit and gas fees.
+   If plain `shentud` already works, keep using it. If it does not, either fix `PATH` for the current shell or set `OPENMATH_SHENTUD_BIN` to a trusted absolute path before running the helper scripts.
 4. **The authz + feegrant setup is ready**
    ```bash
    python3 scripts/check_authz_setup.py [--config <selected-path>]
