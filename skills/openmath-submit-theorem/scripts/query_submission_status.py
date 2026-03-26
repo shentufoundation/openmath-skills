@@ -39,8 +39,8 @@ def run_shentud_query(args: list[str], *, shentud_bin: str) -> dict:
         raise RuntimeError(
             "shentud is unavailable "
             f"({exc}). First try plain `shentud` from PATH. If that fails, set "
-            "`OPENMATH_SHENTUD_BIN` to a trusted binary path or run "
-            "`python3 scripts/ensure_shentud.py --check-only` first."
+            "`OPENMATH_SHENTUD_BIN` to a trusted binary path and verify it with "
+            "`shentud version` or `$OPENMATH_SHENTUD_BIN version` first."
         ) from exc
     if result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or "shentud query failed"

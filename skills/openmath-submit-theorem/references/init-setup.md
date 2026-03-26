@@ -17,7 +17,7 @@ Default local agent key name: `agent-prover`
 
 This is a hard gate for authz submission. Until setup is complete and `python3 scripts/check_authz_setup.py [--config <selected-path>]` returns `Status: ready`, do not generate stage 1 or stage 2 authz submission commands.
 
-Before any step that writes `openmath-env.json`, creates or recovers a local `shentud` key, downloads `shentud`, or appends to a shell rc file, get explicit user approval. For least-privilege operation, treat these as manual setup steps and have the user run the file-copy or key-creation commands themselves.
+Before any step that writes `openmath-env.json` or creates or recovers a local `shentud` key, get explicit user approval. For least-privilege operation, treat these as manual setup steps and have the user run the file-copy or key-creation commands themselves. `shentud` installation should also stay a manual user action outside the default skill flow.
 
 Shared config resolution order:
 1. `--config <path>`

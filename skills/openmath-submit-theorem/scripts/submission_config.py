@@ -93,6 +93,10 @@ def setup_doc_path() -> Path:
     return Path(__file__).resolve().parent.parent / "references" / "init-setup.md"
 
 
+def authz_setup_doc_path() -> Path:
+    return Path(__file__).resolve().parent.parent / "references" / "authz_setup.md"
+
+
 def candidate_env_config_paths() -> tuple[Path, Path]:
     """Return the two auto-discovery locations for openmath-env.json."""
     return (project_env_config_path(), GLOBAL_ENV_CONFIG_PATH)
@@ -133,8 +137,8 @@ def detect_working_shentud() -> tuple[str, str]:
     detail = "; ".join(errors) if errors else "no candidates checked"
     raise RuntimeError(
         "shentud is unavailable. First try plain `shentud` from PATH. "
-        "If that fails, set `OPENMATH_SHENTUD_BIN` to a trusted binary path or run "
-        "`python3 scripts/ensure_shentud.py --check-only`.\n"
+        "If that fails, set `OPENMATH_SHENTUD_BIN` to a trusted binary path and verify it "
+        "with `shentud version` or `$OPENMATH_SHENTUD_BIN version`.\n"
         f"Tried: {detail}"
     )
 
@@ -176,6 +180,7 @@ def authz_onboarding_text(
 ) -> str:
     env_example = env_example_config_path()
     setup_doc = setup_doc_path()
+    authz_doc = authz_setup_doc_path()
     project_config, global_config = candidate_env_config_paths()
     explicit = explicit_env_config_path()
     discovery_lines = (
@@ -204,8 +209,9 @@ def authz_onboarding_text(
         "",
         *discovery_lines,
         "",
-        f"Init setup guide: {setup_doc}",
-        f"Template to copy and edit manually: {env_example}",
+        f"Primary setup guide: {setup_doc}",
+        f"Config template: {env_example}",
+        f"Manual authz/feegrant fallback: {authz_doc}",
         "",
     ]
 
@@ -225,7 +231,7 @@ def authz_onboarding_text(
                         f"- ./{PROJECT_CONFIG_DIRNAME}/{ENV_CONFIG_FILENAME} (recommended for project-specific settings)",
                         "- ~/.openmath-skills/openmath-env.json (recommended for reusable settings)",
                         "",
-                        "Then have the user create openmath-env.json there from the example config.",
+                        "Then have the user create openmath-env.json there manually from the example config.",
                         "",
                     ]
                 ),
@@ -255,38 +261,20 @@ def authz_onboarding_text(
             "Required authz identity fields:",
             "- preferred_language: optional shared preference for theorem discovery (`lean` or `rocq`)",
             "- prover_address: the user's OpenMath Wallet Address from Profile",
-            "- agent_address: the bech32 address for the agent used by authz exec",
             f"- agent_key_name: the local key name used with `shentud tx authz exec --from` (default: {DEFAULT_AGENT_KEY_NAME})",
-            "- fee granter is derived automatically from prover_address",
-            f"- Shentu chain ID comes from SHENTU_CHAIN_ID or defaults to {DEFAULT_SHENTU_CHAIN_ID}",
-            f"- Shentu RPC URL comes from SHENTU_NODE_URL or defaults to {DEFAULT_SHENTU_NODE_URL}",
+            "- agent_address: the bech32 address for the agent used by authz exec",
             "",
-            "Before asking for `prover_address`, guide the user:",
-            "1. Open https://openmath.shentu.org",
-            "2. Connect the wallet and enter Profile",
-            "3. Copy Wallet Address",
-            "4. Save that address as `prover_address`",
+            "Keep runtime defaults outside openmath-env.json:",
+            f"- SHENTU_CHAIN_ID defaults to {DEFAULT_SHENTU_CHAIN_ID}",
+            f"- SHENTU_NODE_URL defaults to {DEFAULT_SHENTU_NODE_URL}",
             "",
-            f"Then resolve the local agent key using the default name `{DEFAULT_AGENT_KEY_NAME}`:",
-            f"  shentud keys show {DEFAULT_AGENT_KEY_NAME} -a --keyring-backend {KEYRING_BACKEND}",
-            f"If the key exists, save `agent_key_name` as `{DEFAULT_AGENT_KEY_NAME}` and use the returned address as `agent_address`.",
+            "Next steps:",
+            f"1. Follow {setup_doc} for config edits, local key setup, and the normal website authorization flow.",
+            f"2. Use {authz_doc} only if authz or feegrant still needs manual CLI repair after setup.",
+            f"3. Re-run `python3 scripts/check_authz_setup.py --config {config_path}`.",
             "",
-            "If the key does not exist, stop and ask the user whether to create a new local key or recover an existing one.",
-            "For least-privilege setup, do not run `shentud keys add` from the skill.",
-            "Ask the user to run one of these commands manually after review:",
-            f"  shentud keys add {DEFAULT_AGENT_KEY_NAME} --keyring-backend {KEYRING_BACKEND}",
-            f"  shentud keys add {DEFAULT_AGENT_KEY_NAME} --recover --keyring-backend {KEYRING_BACKEND}",
-            f"Then save `agent_key_name` as `{DEFAULT_AGENT_KEY_NAME}` and save the resulting address as `agent_address`.",
-            "Tell the user to securely store any mnemonic or recovery material shown during key creation or recovery.",
-            "",
-            "When `prover_address` and `agent_address` are both known, and authz/feegrant is still missing:",
-            "1. Open https://openmath.shentu.org/OpenMath/Profile",
-            "2. Scroll to the bottom and find `AI Agent Authorization`.",
-            "3. Enter `agent_address`.",
-            "4. Click `Authorize` and confirm the wallet transaction(s).",
-            f"5. Re-run `python3 scripts/check_authz_setup.py --config {config_path}` to verify chain state.",
-            "",
-            "Manual fallback: see references/authz_setup.md for CLI authz + feegrant commands.",
+            f"For quick local key inspection, use `shentud keys show {DEFAULT_AGENT_KEY_NAME} -a --keyring-backend {KEYRING_BACKEND}`.",
+            "Treat key creation or recovery as a manual user action and never handle mnemonics automatically from the skill.",
         ]
     )
     return "\n".join(lines)
