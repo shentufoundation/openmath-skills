@@ -51,10 +51,8 @@ def default_config_path() -> Path:
 DEFAULT_CONFIG_PATH = default_config_path()
 
 DEFAULT_AUTHZ_MESSAGES = (
-    "/shentu.bounty.v1.MsgCreateTheorem",
     "/shentu.bounty.v1.MsgSubmitProofHash",
     "/shentu.bounty.v1.MsgSubmitProofDetail",
-    "/shentu.bounty.v1.MsgWithdrawReward",
 )
 DEFAULT_FEEGRANT_MESSAGES = ("/cosmos.authz.v1beta1.MsgExec",)
 REQUIRED_IDENTITY_FIELDS = ("prover_address", "agent_address", "agent_key_name")
@@ -192,7 +190,7 @@ def authz_onboarding_text(
             "Selected config path:",
             f"- {config_path}",
             "",
-            "This path was selected explicitly. Create or update this file in place.",
+            "This path was selected explicitly. Ask the user to create or edit this file manually in place.",
         ]
         if selected_override
         else [
@@ -207,7 +205,7 @@ def authz_onboarding_text(
         *discovery_lines,
         "",
         f"Init setup guide: {setup_doc}",
-        f"Copy and edit the example config: {env_example}",
+        f"Template to copy and edit manually: {env_example}",
         "",
     ]
 
@@ -218,7 +216,7 @@ def authz_onboarding_text(
                 "",
                 *(
                     [
-                        "Create or update the selected config path in place.",
+                        "Ask the user to create or edit the selected config path manually from the example file.",
                         "",
                     ]
                     if selected_override
@@ -227,7 +225,7 @@ def authz_onboarding_text(
                         f"- ./{PROJECT_CONFIG_DIRNAME}/{ENV_CONFIG_FILENAME} (recommended for project-specific settings)",
                         "- ~/.openmath-skills/openmath-env.json (recommended for reusable settings)",
                         "",
-                        "Then create openmath-env.json there from the example config.",
+                        "Then have the user create openmath-env.json there from the example config.",
                         "",
                     ]
                 ),
@@ -237,7 +235,7 @@ def authz_onboarding_text(
         lines.extend(
             [
                 f"Existing config detected: {config_path}",
-                "Do not create a second config file. Update this file in place.",
+                "Do not create a second config file. Have the user update this file manually in place.",
                 "",
             ]
         )
@@ -247,7 +245,7 @@ def authz_onboarding_text(
             lines.extend(
                 [
                     "",
-                    "Ask only for the missing fields, then update the existing config.",
+                    "Ask only for the missing fields, then have the user update the existing config manually.",
                     "",
                 ]
             )
@@ -274,7 +272,8 @@ def authz_onboarding_text(
             f"If the key exists, save `agent_key_name` as `{DEFAULT_AGENT_KEY_NAME}` and use the returned address as `agent_address`.",
             "",
             "If the key does not exist, stop and ask the user whether to create a new local key or recover an existing one.",
-            "Only after explicit approval should you run one of these commands:",
+            "For least-privilege setup, do not run `shentud keys add` from the skill.",
+            "Ask the user to run one of these commands manually after review:",
             f"  shentud keys add {DEFAULT_AGENT_KEY_NAME} --keyring-backend {KEYRING_BACKEND}",
             f"  shentud keys add {DEFAULT_AGENT_KEY_NAME} --recover --keyring-backend {KEYRING_BACKEND}",
             f"Then save `agent_key_name` as `{DEFAULT_AGENT_KEY_NAME}` and save the resulting address as `agent_address`.",

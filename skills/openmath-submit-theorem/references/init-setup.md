@@ -17,7 +17,7 @@ Default local agent key name: `agent-prover`
 
 This is a hard gate for authz submission. Until setup is complete and `python3 scripts/check_authz_setup.py [--config <selected-path>]` returns `Status: ready`, do not generate stage 1 or stage 2 authz submission commands.
 
-Before any step that writes `openmath-env.json`, creates or recovers a local `shentud` key, downloads `shentud`, or appends to a shell rc file, get explicit user approval.
+Before any step that writes `openmath-env.json`, creates or recovers a local `shentud` key, downloads `shentud`, or appends to a shell rc file, get explicit user approval. For least-privilege operation, treat these as manual setup steps and have the user run the file-copy or key-creation commands themselves.
 
 Shared config resolution order:
 1. `--config <path>`
@@ -44,9 +44,10 @@ No project/global config found        Config found, required fields missing
   +------------------------+              +------------------------+
             |                                       |
             v                                       v
-  +--------------------------+            +--------------------------+
-  | Create openmath-env.json |            | Update openmath-env.json |
-  +--------------------------+            +--------------------------+
+  +------------------------------+        +------------------------------+
+  | User creates openmath-env    |        | User updates openmath-env    |
+  | manually from the template   |        | manually in the chosen file  |
+  +------------------------------+        +------------------------------+
             |                                       |
             v                                       v
   +------------------------+              +------------------------+
@@ -66,7 +67,7 @@ No project/global config found        Config found, required fields missing
 
 **Language**: Use the user's input language or saved conversation language preference.
 
-If `--config` or `OPENMATH_ENV_CONFIG` already selects a specific config path, do not ask the user to choose Project vs User first. Create or update that selected file in place.
+If `--config` or `OPENMATH_ENV_CONFIG` already selects a specific config path, do not ask the user to choose Project vs User first. Guide the user to create or edit that selected file manually in place.
 
 Use AskUserQuestion with all independent questions in one call:
 
@@ -136,15 +137,15 @@ Resolve this without asking for alternate key names first:
 
 ### If the key does not exist
 
-Stop and ask the user whether to create a new local key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+Stop and ask the user whether to create a new local key or recover an existing one. For least-privilege setup, do not run `shentud keys add` from the skill. Instead, show one of the following commands for the user to run manually after review.
 
-Create a new key only if the user approves:
+Create a new key:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
 ```
 
-Recover an existing key only if the user approves:
+Recover an existing key:
 
 ```bash
 shentud keys add agent-prover --recover --keyring-backend os
@@ -177,9 +178,27 @@ Only ask for a different key name or different `agent_address` if the user expli
 }
 ```
 
+Manual setup commands:
+
+Project-local config:
+
+```bash
+mkdir -p .openmath-skills
+cp references/openmath-env.example.json .openmath-skills/openmath-env.json
+```
+
+User-local config:
+
+```bash
+mkdir -p ~/.openmath-skills
+cp references/openmath-env.example.json ~/.openmath-skills/openmath-env.json
+```
+
+After copying, have the user open the selected file and fill in the required fields manually.
+
 ## Flow 2: Config Exists, Required Fields Missing
 
-Do not create a second config file. Update the existing file in place.
+Do not create a second config file. Have the user update the existing file in place.
 
 Use AskUserQuestion only for the missing fields.
 
@@ -215,15 +234,15 @@ If it exists, save:
 - `agent_key_name`: `agent-prover`
 - `agent_address`: the detected address
 
-If it does not exist, stop and ask the user whether to create a new key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+If it does not exist, stop and ask the user whether to create a new key or recover an existing one. For least-privilege setup, do not run `shentud keys add` from the skill. Instead, show one of the following commands for the user to run manually after review.
 
-Create a new key only if the user approves:
+Create a new key:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
 ```
 
-Recover an existing key only if the user approves:
+Recover an existing key:
 
 ```bash
 shentud keys add agent-prover --recover --keyring-backend os
@@ -238,7 +257,7 @@ Only ask the user for a different key name or different `agent_address` if they 
 
 After the answers:
 
-1. Update the existing `openmath-env.json` in place
+1. Have the user update the existing `openmath-env.json` manually in place
 2. Run the local default key resolution step if needed
 3. Continue to website authorization
 

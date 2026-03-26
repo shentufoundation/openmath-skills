@@ -19,17 +19,13 @@ shentud version
 shentud keys list --keyring-backend os
 ```
 
+Least-privilege default: `shentud` installation and local key creation or recovery are manual prerequisites. The default skill flow may run read-only checks such as `command -v shentud`, `shentud version`, `shentud keys show`, and `python3 scripts/ensure_shentud.py --check-only`, but it should not auto-install binaries or auto-create or recover keys.
+
 If `shentud` is missing or the keyring is not configured, stop here and install/configure the Shentu environment first. Do not start Stage 1 until these checks pass.
-First check whether plain `shentud` already works. If `command -v shentud` fails, the default path is broken, or `shentud version` cannot run, then decide whether to use an explicit trusted binary path or the bundled installer:
+First check whether plain `shentud` already works. If `command -v shentud` fails, the default path is broken, or `shentud version` cannot run, prefer either a manual install of a vetted binary or setting `OPENMATH_SHENTUD_BIN` to a trusted absolute path. The bundled helper below is diagnostic-only in the default flow:
 
 ```bash
 python3 scripts/ensure_shentud.py --check-only
-```
-
-Only after explicit user approval should you run:
-
-```bash
-python3 scripts/ensure_shentud.py --install [--persist-path]
 ```
 
 ### Install `shentud` if Missing
@@ -82,8 +78,8 @@ If you want to persist the PATH change, use `python3 scripts/ensure_shentud.py -
 
 If you prefer a system-wide location, you can also place the binary in a directory that is already in `PATH`, such as `/usr/local/bin`, and keep the executable name as `shentud`.
 
-### Automatic Install Helper
-The bundled helper below can handle the common case where `shentud` is missing or the default PATH points to a broken binary:
+### Optional Install Helper
+The bundled helper below exists as an explicit fallback when the user wants the repository to handle the download step after review. It is not part of the default least-privilege flow; prefer the manual install steps above or a vetted `OPENMATH_SHENTUD_BIN` path first.
 
 ```bash
 python3 scripts/ensure_shentud.py --check-only
@@ -106,7 +102,7 @@ python3 scripts/ensure_shentud.py --force-download
 ```
 
 ### Configure Keys if `shentud keys list` Is Empty
-If the local `os` keyring does not contain the key you want to use for submission, stop and ask the user to create or recover it before continuing. Do not switch to other keyring backends.
+If the local `os` keyring does not contain the key you want to use for submission, stop and ask the user to create or recover it before continuing. Do not switch to other keyring backends. Treat this as a manual setup step: the user should run the reviewed command themselves, or it should happen in a separately approved terminal step outside the default skill flow.
 
 Create a new local key:
 
@@ -142,7 +138,7 @@ The default OpenMath submission flow now uses:
 2. an outer `shentud tx authz exec`
 3. a feegrant from the OpenMath Wallet Address owner (`prover_address`)
 
-Create a local config file first. Shared config resolution order is `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, fix or unset it instead of silently falling back. See `references/init-setup.md` for the full setup flow.
+Create a local config file first. Treat this as a manual setup step: the user should copy the example file to the chosen location and edit it directly. Shared config resolution order is `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, fix or unset it instead of silently falling back. See `references/init-setup.md` for the full setup flow.
 
 ```bash
 mkdir -p .openmath-skills
@@ -203,12 +199,12 @@ Before generating or broadcasting any submission command, confirm all 6 items be
    ```bash
    shentud keys show agent-prover -a --keyring-backend os
    ```
-   If the key is missing, stop and ask the user whether to create a new key or recover an existing one. Do not run `shentud keys add` without explicit approval.
-   Create a new key only if the user approves:
+   If the key is missing, stop and guide the user to the manual key setup commands above. Do not run `shentud keys add` as part of the default skill flow.
+   If the user chooses to create a new key manually:
    ```bash
    shentud keys add agent-prover --keyring-backend os
    ```
-   Recover an existing key only if the user approves:
+   If the user chooses to recover an existing key manually:
    ```bash
    shentud keys add agent-prover --recover --keyring-backend os
    ```

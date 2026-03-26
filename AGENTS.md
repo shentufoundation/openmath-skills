@@ -76,7 +76,6 @@ openmath-skills-arena/
 │   ├── openmath-submit-theorem/     # Submit proofs on-chain
 │   └── openmath-claim-reward/       # Claim rewards
 ├── bin/                             # CLI for skill installation
-├── tools/                           # Non-skill tools
 ├── package.json                     # npm package for npx support
 ├── AGENTS.md                        # This file
 ├── CLAUDE.md                        # Claude Code guidance

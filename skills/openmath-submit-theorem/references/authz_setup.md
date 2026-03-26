@@ -2,11 +2,11 @@
 
 Use this when `openmath-submit-theorem` is configured for the default authz-based flow.
 
-Before writing `openmath-env.json`, creating or recovering a local key, or installing `shentud`, get explicit user approval.
+Before writing `openmath-env.json`, creating or recovering a local key, or installing `shentud`, get explicit user approval. For least-privilege operation, treat all three as manual setup steps.
 
 ## Required Local Config
 
-Create a local config file from the example. See `references/init-setup.md` for the full flow. Shared config resolution order is `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`.
+Create a local config file from the example. Treat this as a manual setup step: the user should copy the example file to the chosen location and edit it directly. See `references/init-setup.md` for the full flow. Shared config resolution order is `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`.
 
 ```bash
 mkdir -p .openmath-skills
@@ -35,15 +35,15 @@ Recommended local key flow:
 shentud keys show agent-prover -a --keyring-backend os
 ```
 
-If the key does not exist, stop and ask the user whether to create a new local key or recover an existing one. Do not run `shentud keys add` without explicit approval.
+If the key does not exist, stop and ask the user whether to create a new local key or recover an existing one. For least-privilege setup, do not run `shentud keys add` from the skill. Instead, show one of the following commands for the user to run manually after review.
 
-Create a new key only if the user approves:
+Create a new key:
 
 ```bash
 shentud keys add agent-prover --keyring-backend os
 ```
 
-Recover an existing key only if the user approves:
+Recover an existing key:
 
 ```bash
 shentud keys add agent-prover --recover --keyring-backend os
