@@ -14,6 +14,7 @@ from submission_config import (
     SubmissionConfig,
     SubmissionConfigError,
     authz_onboarding_text,
+    detect_working_shentud,
     load_submission_config,
 )
 
@@ -35,20 +36,27 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run_command(args: list[str]) -> str:
-    result = subprocess.run(args, capture_output=True, text=True)
+def run_command(args: list[str], *, shentud_bin: str | None = None) -> str:
+    command = list(args)
+    if shentud_bin and command and command[0] == "shentud":
+        command[0] = shentud_bin
+
+    result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or "command failed"
-        raise RuntimeError(f"{' '.join(args)}: {message}")
+        raise RuntimeError(f"{' '.join(command)}: {message}")
     return result.stdout.strip()
 
 
-def run_json(args: list[str]) -> dict:
-    output = run_command(args)
+def run_json(args: list[str], *, shentud_bin: str | None = None) -> dict:
+    output = run_command(args, shentud_bin=shentud_bin)
     try:
         return json.loads(output)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"{' '.join(args)}: expected JSON output") from exc
+        command = list(args)
+        if shentud_bin and command and command[0] == "shentud":
+            command[0] = shentud_bin
+        raise RuntimeError(f"{' '.join(command)}: expected JSON output") from exc
 
 
 def print_status(kind: str, label: str, detail: str | None = None) -> None:
@@ -87,7 +95,7 @@ def extract_authz_messages(payload: object) -> set[str]:
     }
 
 
-def check_local_key(config: SubmissionConfig) -> tuple[bool, bool]:
+def check_local_key(config: SubmissionConfig, *, shentud_bin: str) -> tuple[bool, bool]:
     try:
         address = run_command(
             [
@@ -98,7 +106,8 @@ def check_local_key(config: SubmissionConfig) -> tuple[bool, bool]:
                 "-a",
                 "--keyring-backend",
                 KEYRING_BACKEND,
-            ]
+            ],
+            shentud_bin=shentud_bin,
         )
     except RuntimeError as exc:
         print_status("missing", "local agent key", str(exc))
@@ -117,7 +126,7 @@ def check_local_key(config: SubmissionConfig) -> tuple[bool, bool]:
     return True, True
 
 
-def check_authz_grants(config: SubmissionConfig) -> bool:
+def check_authz_grants(config: SubmissionConfig, *, shentud_bin: str) -> bool:
     try:
         payload = run_json(
             [
@@ -131,7 +140,8 @@ def check_authz_grants(config: SubmissionConfig) -> bool:
                 config.shentu_node_url,
                 "-o",
                 "json",
-            ]
+            ],
+            shentud_bin=shentud_bin,
         )
     except RuntimeError as exc:
         print_status("missing", "authz grants", str(exc))
@@ -161,7 +171,7 @@ def check_authz_grants(config: SubmissionConfig) -> bool:
     return ready
 
 
-def check_feegrant(config: SubmissionConfig) -> tuple[bool, bool]:
+def check_feegrant(config: SubmissionConfig, *, shentud_bin: str) -> tuple[bool, bool]:
     try:
         payload = run_json(
             [
@@ -175,7 +185,8 @@ def check_feegrant(config: SubmissionConfig) -> tuple[bool, bool]:
                 config.shentu_node_url,
                 "-o",
                 "json",
-            ]
+            ],
+            shentud_bin=shentud_bin,
         )
     except RuntimeError as exc:
         print_status("missing", "feegrant grant", str(exc))
@@ -241,19 +252,20 @@ def main(argv: list[str] | None = None) -> int:
     ready = True
 
     try:
-        version = run_command(["shentud", "version"])
-        print_status("ok", "shentud available", version)
+        shentud_bin, version = detect_working_shentud()
+        detail = version if shentud_bin == "shentud" else f"{version} ({shentud_bin})"
+        print_status("ok", "shentud available", detail)
     except RuntimeError as exc:
         print_status("missing", "shentud available", str(exc))
         return 1
 
-    key_exists, key_matches = check_local_key(config)
+    key_exists, key_matches = check_local_key(config, shentud_bin=shentud_bin)
     ready = ready and key_exists and key_matches
 
     print()
     print("Chain checks")
-    authz_ready = check_authz_grants(config)
-    feegrant_exists, feegrant_ready = check_feegrant(config)
+    authz_ready = check_authz_grants(config, shentud_bin=shentud_bin)
+    feegrant_exists, feegrant_ready = check_feegrant(config, shentud_bin=shentud_bin)
 
     ready = ready and authz_ready and feegrant_exists and feegrant_ready
 

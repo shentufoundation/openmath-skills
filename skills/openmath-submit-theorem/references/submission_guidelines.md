@@ -19,44 +19,63 @@ shentud version
 shentud keys list --keyring-backend os
 ```
 
+Least-privilege default: `shentud` installation and local key creation or recovery are manual prerequisites. The default skill flow may run read-only checks such as `command -v shentud`, `shentud version`, and `shentud keys show`, but it should not auto-install binaries or auto-create or recover keys.
+
 If `shentud` is missing or the keyring is not configured, stop here and install/configure the Shentu environment first. Do not start Stage 1 until these checks pass.
-If `command -v shentud` fails, the default path is broken, or `shentud version` cannot run, use the bundled installer:
-
-```bash
-python3 scripts/ensure_shentud.py --check-only
-```
-
-Only after explicit user approval should you run:
-
-```bash
-python3 scripts/ensure_shentud.py --install [--persist-path]
-```
+First check whether plain `shentud` already works. If `command -v shentud` fails, the default path is broken, or `shentud version` cannot run, prefer either a manual install of a vetted binary or setting `OPENMATH_SHENTUD_BIN` to a trusted absolute path.
 
 ### Install `shentud` if Missing
-1. Download the latest release from:
+Recommended default:
+
+1. Download a trusted release binary from the official Shentu releases page:
    `https://github.com/shentufoundation/shentu/releases`
-2. Releases usually include separate binaries for Linux and Apple Silicon macOS. For example, in release `v2.17.0`:
-   *   `shentud_2.17.0_arm64_macos`
-   *   `shentud_2.17.0_linux_amd64`
-3. Choose the binary that matches the current machine architecture and operating system.
-4. After downloading, place the binary somewhere in your `PATH` and make sure the executable name is `shentud`, so it can be called directly from any shell.
-5. Verify the installation with:
+2. Choose the binary that matches the current machine operating system and CPU architecture.
+   Common filename patterns include:
+   - macOS Apple Silicon: `*_arm64_macos`
+   - Linux x86_64: `*_linux_amd64`
+   Check the current machine with:
 
 ```bash
+uname -s
+uname -m
+```
+
+3. Rename it to `shentud`.
+4. Install it to the user-local path `$HOME/bin/shentud`.
+5. Add `$HOME/bin` to `PATH` for the current shell.
+6. Verify with:
+
+```bash
+command -v shentud
 shentud version
 ```
 
-The command should print the installed version and confirm that `shentud` is available globally.
-
-### Example Setup
-After downloading a release binary, make it executable and rename it to `shentud`:
+The preferred install target is:
 
 ```bash
-chmod +x shentud_2.17.0_arm64_macos
-mv shentud_2.17.0_arm64_macos shentud
+$HOME/bin/shentud
 ```
 
-Common ways to place it in `PATH` without editing a shell rc file:
+This keeps the install user-local and avoids requiring system-wide write permissions.
+
+Only use a system-wide location such as `/usr/local/bin/shentud` if the user explicitly wants that and understands the higher-privilege write.
+
+### Example Setup
+macOS Apple Silicon quick download example for `v2.17.0`:
+
+```bash
+curl -L https://github.com/shentufoundation/shentu/releases/download/v2.17.0/shentud_2.17.0_arm64_macos -o shentud
+chmod +x shentud
+```
+
+Linux x86_64 quick download example for `v2.17.0`:
+
+```bash
+wget https://github.com/shentufoundation/shentu/releases/download/v2.17.0/shentud_2.17.0_linux_amd64 -O shentud
+chmod +x shentud
+```
+
+Recommended user-local install without editing a shell rc file:
 
 macOS (`zsh`):
 
@@ -78,98 +97,44 @@ command -v shentud
 shentud version
 ```
 
-If you want to persist the PATH change, use `python3 scripts/ensure_shentud.py --install --persist-path` only after explicit user approval, or review and edit the relevant shell rc file manually as a separate explicit step.
+If `command -v shentud` prints a path and `shentud version` succeeds, the CLI is ready for this skill.
 
-If you prefer a system-wide location, you can also place the binary in a directory that is already in `PATH`, such as `/usr/local/bin`, and keep the executable name as `shentud`.
+If you want the `PATH` change to persist across new shells, review and edit the relevant shell rc file manually as a separate explicit step.
 
-### Automatic Install Helper
-The bundled helper below can handle the common case where `shentud` is missing or the default PATH points to a broken binary:
+### Alternative Install Locations
+Use one of these only if the default `$HOME/bin/shentud` path is not what the user wants:
 
-```bash
-python3 scripts/ensure_shentud.py --check-only
-```
+1. An existing directory that is already on `PATH`
+2. A trusted explicit path used via `OPENMATH_SHENTUD_BIN`
+3. A system-wide location such as `/usr/local/bin/shentud`
 
-What it does:
-1. Checks whether an existing `shentud` binary already works.
-2. If you later rerun it with `--install`, it downloads the latest release from GitHub.
-3. Selects the correct binary for the current OS and CPU architecture.
-4. Installs it as `~/bin/shentud`.
-5. Appends the install directory to the active shell rc file only if `--persist-path` is used.
+Keep the executable name as `shentud` in all cases.
 
-Useful options:
+### Explicit Binary Path Fallback
+If the user does not want to modify `PATH`, or wants the skill to use a specific vetted binary, set an explicit path instead:
 
 ```bash
-python3 scripts/ensure_shentud.py --check-only
-python3 scripts/ensure_shentud.py --install
-python3 scripts/ensure_shentud.py --install --persist-path
-python3 scripts/ensure_shentud.py --force-download
+export OPENMATH_SHENTUD_BIN=/absolute/path/to/shentud
 ```
 
-### Configure Keys if `shentud keys list` Is Empty
-If the local `os` keyring does not contain the key you want to use for submission, stop and ask the user to create or recover it before continuing. Do not switch to other keyring backends.
-
-Create a new local key:
+Then verify the exact binary the skill will use:
 
 ```bash
-shentud keys add <key-name> --keyring-backend os
+"$OPENMATH_SHENTUD_BIN" version
 ```
 
-Recover an existing key from its mnemonic:
+### Config and Local Key Gate
+This document assumes the authz submission environment is already configured.
 
-```bash
-shentud keys add <key-name> --recover --keyring-backend os
-```
+If any of the following is missing, stop here and go to `references/init-setup.md`:
 
-Recover from a mnemonic file:
-
-```bash
-shentud keys add <key-name> --recover --source ./mnemonic.txt --keyring-backend os
-```
-
-Show the submission address for a configured key:
-
-```bash
-shentud keys show <key-name> -a --keyring-backend os
-```
-
-After creating or recovering a key, make sure the address has enough `uctk` for the proof deposit and gas fees before starting Stage 1.
-
-### Authz Submission Config
-
-The default OpenMath submission flow now uses:
-
-1. an inner raw OpenMath message JSON (`proofhash.json` / `proofdetail.json`)
-2. an outer `shentud tx authz exec`
-3. a feegrant from the OpenMath Wallet Address owner (`prover_address`)
-
-Create a local config file first. Shared config resolution order is `--config <path>` → `OPENMATH_ENV_CONFIG` → `./.openmath-skills/openmath-env.json` → `~/.openmath-skills/openmath-env.json`. If `OPENMATH_ENV_CONFIG` is set, fix or unset it instead of silently falling back. See `references/init-setup.md` for the full setup flow.
-
-```bash
-mkdir -p .openmath-skills
-cp references/openmath-env.example.json .openmath-skills/openmath-env.json
-```
-
-Or:
-
-```bash
-mkdir -p ~/.openmath-skills
-cp references/openmath-env.example.json ~/.openmath-skills/openmath-env.json
-```
-
-Fill in:
-
-- `preferred_language` (optional shared preference used by `openmath-open-theorem`: `lean` or `rocq`)
-- `prover_address` (`OpenMath Wallet Address`)
-- `agent_key_name` (default: `agent-prover`)
+- `openmath-env.json`
+- `prover_address`
+- `agent_key_name`
 - `agent_address`
-- fee granter is derived automatically from `prover_address`
+- a usable local `os` key for `agent_key_name`
 
-Runtime chain settings are not stored in `openmath-env.json`:
-
-- `SHENTU_CHAIN_ID` (default: `shentu-2.2`)
-- `SHENTU_NODE_URL` (default: `https://rpc.shentu.org:443`)
-
-If the config is missing from both locations, or if it exists but is missing `prover_address`, `agent_address`, or `agent_key_name`, stop and run `references/init-setup.md`, then validate:
+After setup, validate before returning to this document:
 
 ```bash
 python3 scripts/check_authz_setup.py [--config <selected-path>]
@@ -197,21 +162,13 @@ Before generating or broadcasting any submission command, confirm all 6 items be
    ```bash
    shentud keys show agent-prover -a --keyring-backend os
    ```
-   If the key is missing, stop and ask the user whether to create a new key or recover an existing one. Do not run `shentud keys add` without explicit approval.
-   Create a new key only if the user approves:
-   ```bash
-   shentud keys add agent-prover --keyring-backend os
-   ```
-   Recover an existing key only if the user approves:
-   ```bash
-   shentud keys add agent-prover --recover --keyring-backend os
-   ```
-   Then save the resulting address as `agent_address` and tell the user to securely store the mnemonic or recovery material.
+   If the key is missing, stop and go back to `references/init-setup.md`. Do not run `shentud keys add` as part of the default submission flow.
 3. **The OpenMath Wallet Address owner (`prover_address`) has enough `uctk`**
    ```bash
    shentud q bank balance --denom uctk --address <FEE_GRANTER_ADDRESS> --node <shentu_node_url>
    ```
    Use `SHENTU_NODE_URL` or the built-in default `https://rpc.shentu.org:443`. Make sure the balance covers the proof deposit and gas fees.
+   If plain `shentud` already works, keep using it. If it does not, either fix `PATH` for the current shell or set `OPENMATH_SHENTUD_BIN` to a trusted absolute path before running the submission scripts.
 4. **The authz + feegrant setup is ready**
    ```bash
    python3 scripts/check_authz_setup.py [--config <selected-path>]
@@ -270,7 +227,7 @@ shentud keys show <agent-key-name> -a --keyring-backend os
 ```
 
 This address should match `agent_address` in `openmath-env.json`.
-If the key is missing, go back to the `Config` section and create or recover it first in the `os` keyring.
+If the key is missing, go back to `references/init-setup.md` and complete the local key setup first.
 
 ### Check Balance
 Proof submission requires:

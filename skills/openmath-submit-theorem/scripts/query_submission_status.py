@@ -10,6 +10,8 @@ import subprocess
 import sys
 import time
 
+from submission_config import detect_working_shentud
+
 # Default when no config: Shentu RPC fallback
 _FALLBACK_NODE_URL = os.environ.get("SHENTU_NODE_URL", "https://rpc.shentu.org:443")
 
@@ -21,7 +23,6 @@ def _default_node_url() -> str:
 
 DEFAULT_NODE_URL = _default_node_url()
 DEFAULT_WAIT_SECONDS = 6
-DEFAULT_SHENTUD_BIN = os.environ.get("OPENMATH_SHENTUD_BIN", "shentud")
 
 STATUS_MEANINGS = {
     "THEOREM_STATUS_PASSED": "The theorem proof has passed verification.",
@@ -30,13 +31,16 @@ STATUS_MEANINGS = {
 }
 
 
-def run_shentud_query(args: list[str]) -> dict:
-    command = [DEFAULT_SHENTUD_BIN, *args, "-o", "json"]
+def run_shentud_query(args: list[str], *, shentud_bin: str) -> dict:
+    command = [shentud_bin, *args, "-o", "json"]
     try:
         result = subprocess.run(command, capture_output=True, text=True)
     except (FileNotFoundError, OSError) as exc:
         raise RuntimeError(
-            f"shentud is unavailable ({exc}). Run `python3 scripts/ensure_shentud.py --check-only` first, and install with `--install` only if the user approves."
+            "shentud is unavailable "
+            f"({exc}). First try plain `shentud` from PATH. If that fails, set "
+            "`OPENMATH_SHENTUD_BIN` to a trusted binary path and verify it with "
+            "`shentud version` or `$OPENMATH_SHENTUD_BIN version` first."
         ) from exc
     if result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or "shentud query failed"
@@ -137,13 +141,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv or sys.argv[1:])
 
     try:
+        shentud_bin, _version = detect_working_shentud()
         maybe_wait(args.wait_seconds)
         if args.mode == "tx":
-            payload = run_shentud_query(["q", "tx", args.txhash, "--node", args.node])
+            payload = run_shentud_query(
+                ["q", "tx", args.txhash, "--node", args.node],
+                shentud_bin=shentud_bin,
+            )
             return summarize_tx(payload)
         if args.mode == "theorem":
             payload = run_shentud_query(
-                ["q", "bounty", "theorem", str(args.theorem_id), "--node", args.node]
+                ["q", "bounty", "theorem", str(args.theorem_id), "--node", args.node],
+                shentud_bin=shentud_bin,
             )
             return summarize_theorem(payload)
     except RuntimeError as exc:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate OpenMath submission commands for direct or authz-based flows."""
+"""Generate OpenMath proof submission commands for direct or authz-based flows."""
 
 from __future__ import annotations
 
