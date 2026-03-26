@@ -1,4 +1,4 @@
-# OpenMath Workspace Preflight
+# OpenMath Lean Workspace Preflight
 
 Run this immediately after `download_theorem.py` and before writing any proof.
 
@@ -57,26 +57,6 @@ cp -R /tmp/leanprover-skills/skills/<missing-skill> <install-dir>/
 ```
 
 If you pass `--auto-install-skills`, it will only run the clone-and-copy flow when `--install-dir <path>` or `OPENMATH_LEAN_SKILL_INSTALL_DIR` is set. It will not silently choose a shared home-directory skills folder for you. Project-local paths such as `.codex/skills` or `.claude/skills` are safer than modifying a shared skills directory by accident.
-
-## Rocq Flow
-
-The Rocq preflight does all of the following:
-
-1. Detects the workspace from `_CoqProject` or root `.v` files
-2. Checks `coqc`
-3. Checks `rocq` if available, but treats it as optional compatibility information
-4. Reads `_CoqProject` flags
-5. Compiles the generated `.v` file(s) with `coqc`
-
-Current limitation:
-
-- This repository does not define a pinned Rocq-specific skill bundle
-- The preflight therefore treats compiler/toolchain validation as mandatory
-- Rocq skill installation is optional and only happens if you configure:
-  - `OPENMATH_ROCQ_REQUIRED_SKILLS`
-  - `OPENMATH_ROCQ_SKILL_INSTALL_CMD`
-
-That gives Rocq a defined preflight path even when no dedicated Rocq skill stack exists yet.
 
 ## Skill Search Paths
 

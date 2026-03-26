@@ -4,6 +4,7 @@
 Before any proof submission, confirm the local Shentu CLI environment is ready.
 
 Required components:
+*   `python3` is installed and available in `PATH`
 *   `shentud` is installed and available in `PATH`
 *   The target key already exists in the local keyring
 *   The RPC endpoint is reachable from the current machine
@@ -11,6 +12,8 @@ Required components:
 Recommended checks:
 
 ```bash
+command -v python3
+python3 --version
 command -v shentud
 shentud version
 shentud keys list --keyring-backend os
@@ -53,15 +56,16 @@ chmod +x shentud_2.17.0_arm64_macos
 mv shentud_2.17.0_arm64_macos shentud
 ```
 
-Common ways to place it in `PATH`:
+Common ways to place it in `PATH` without editing a shell rc file:
 
 macOS (`zsh`):
 
 ```bash
 mkdir -p "$HOME/bin"
 mv shentud "$HOME/bin/shentud"
-echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.zshrc"
-source "$HOME/.zshrc"
+export PATH="$HOME/bin:$PATH"
+command -v shentud
+shentud version
 ```
 
 Linux (`bash`):
@@ -69,9 +73,12 @@ Linux (`bash`):
 ```bash
 mkdir -p "$HOME/bin"
 mv shentud "$HOME/bin/shentud"
-echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.bashrc"
-source "$HOME/.bashrc"
+export PATH="$HOME/bin:$PATH"
+command -v shentud
+shentud version
 ```
+
+If you want to persist the PATH change, use `python3 scripts/ensure_shentud.py --install --persist-path` only after explicit user approval, or review and edit the relevant shell rc file manually as a separate explicit step.
 
 If you prefer a system-wide location, you can also place the binary in a directory that is already in `PATH`, such as `/usr/local/bin`, and keep the executable name as `shentud`.
 
